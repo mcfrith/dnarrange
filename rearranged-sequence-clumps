@@ -1,0 +1,312 @@
+#! /usr/bin/env python
+# Copyright 2018 Martin C. Frith
+
+import gzip
+import optparse
+import os
+import signal
+import sys
+from itertools import groupby
+from operator import itemgetter
+
+def myOpen(fileName):  # faster than fileinput
+    if fileName == "-":
+        return sys.stdin
+    if fileName.endswith(".gz"):
+        return gzip.open(fileName)
+    return open(fileName)
+
+def log(opts, s):
+    if opts.verbose:
+        sys.stderr.write(s + "\n")
+
+def connectedComponent(adjacencyList, isNew, i):
+    stack = [i]
+    while stack:
+        j = stack.pop()
+        if isNew[j]:
+            yield j
+            isNew[j] = False
+            for k in adjacencyList[j]:
+                stack.append(k)
+
+def connectedComponents(adjacencyList):
+    isNew = [True for i in adjacencyList]
+    numOfNodes = len(adjacencyList)
+    for i in range(numOfNodes):
+        if isNew[i]:
+            yield sorted(connectedComponent(adjacencyList, isNew, i))
+
+def fieldsFromMaf(line):
+    _, seqName, start, span, strand, seqLen, _ = line.split(None, 6)
+    # the "split" parameters are unnecessary, but make it faster
+    beg = int(start)
+    if strand == "-":
+        beg -= int(seqLen)  # use negative coordinates for reverse strands
+    return seqName, beg, beg + int(span)
+
+def alignmentsFromMaf(opts, lines):
+    mafLines = []
+    refName = qryName = ""
+    mismap = 0.0
+    for line in lines:
+        if line.isspace():
+            if qryName and mismap <= opts.max_mismap:
+                yield fields
+            mafLines = []
+            refName = qryName = ""
+            mismap = 0.0
+        elif line[0] != "#":
+            mafLines.append(line)
+            if line[0] == "s":
+                if refName:
+                    qryName, qryBeg, qryEnd = fieldsFromMaf(line)
+                    if qryBeg < 0:  # use forward strand of query:
+                        qryBeg, qryEnd = -qryEnd, -qryBeg
+                        refBeg, refEnd = -refEnd, -refBeg
+                    fields = (qryName, qryBeg, qryEnd,
+                              refName, refBeg, refEnd, mafLines)
+                else:
+                    refName, refBeg, refEnd = fieldsFromMaf(line)
+            elif line[0] == "a":
+                for i in line.split():
+                    if i.startswith("mismap="):
+                        mismap = float(i[7:])
+    if qryName and mismap <= opts.max_mismap:
+        yield fields
+
+def isKnownChromosome(name):
+    unknownPrefixes = "chrUn", "Un"  # xxx ???
+    return not name.startswith(unknownPrefixes)
+
+def chromosomeFromName(name):
+    return name.split("_")[0]  # e.g. chr5_random -> chr5
+
+def isDifferentChromosomes(nameX, nameY):
+    return (isKnownChromosome(nameX) and isKnownChromosome(nameY) and
+            chromosomeFromName(nameX) != chromosomeFromName(nameY))
+
+def refNameAndStrand(alignment):
+    return alignment[3], alignment[4] < 0
+
+def knownChromosomes(alignments):
+    for i in alignments:
+        refName = i[3]
+        if isKnownChromosome(refName):
+            yield chromosomeFromName(refName)
+
+def isInterChromosome(alignments):
+    """Is any pair of alignments on different chromosomes?"""
+    return len(set(knownChromosomes(alignments))) > 1
+
+def isInterStrand(alignments):
+    """Is any pair of alignments on opposite strands of the same chromosome?"""
+    names = set(i[3] for i in alignments)
+    namesAndStrands = set(map(refNameAndStrand, alignments))
+    return len(namesAndStrands) > len(names)
+
+def isNonlinear(sortedAlignmentsOfOneQuery, opts):
+    """Is any pair of alignments non-colinear on the same strand?"""
+    maxCoordinates = {}
+    for i in sortedAlignmentsOfOneQuery:
+        k = refNameAndStrand(i)
+        if k in maxCoordinates:
+            m = maxCoordinates[k]
+            if m >= i[4] + opts.min_rev:
+                return True
+            if i[5] > m:
+                maxCoordinates[k] = i[5]
+        else:
+            maxCoordinates[k] = i[5]
+    return False
+
+def isBigGap(sortedAlignmentsOfOneQuery, opts):
+    """Is any pair of adjacent aligments separated by a big genomic gap?"""
+    for j, y in enumerate(sortedAlignmentsOfOneQuery):
+        if j:
+            x = sortedAlignmentsOfOneQuery[j - 1]
+            if refNameAndStrand(x) == refNameAndStrand(y):
+                if y[4] - x[5] >= opts.min_gap:
+                    return True
+    return False
+
+def isRearranged(opts, alignmentsOfOneQuery):
+    return ("C" in opts.types and isInterChromosome(alignmentsOfOneQuery) or
+            "S" in opts.types and isInterStrand(alignmentsOfOneQuery) or
+            "N" in opts.types and isNonlinear(alignmentsOfOneQuery, opts) or
+            "G" in opts.types and isBigGap(alignmentsOfOneQuery, opts))
+
+def alignmentsOfRearrangedQuerySequences(opts, fileNames):
+    qryNum = 0
+    for fileNum, fileName in enumerate(fileNames):
+        log(opts, "reading {0}...".format(fileName))
+        alignments = alignmentsFromMaf(opts, myOpen(fileName))
+        for k, v in groupby(alignments, itemgetter(0)):
+            alignmentsOfOneQuery = sorted(v)
+            if isRearranged(opts, alignmentsOfOneQuery):
+                for alnNum, aln in enumerate(alignmentsOfOneQuery):
+                    (qryName, qryBeg, qryEnd,
+                     refName, refBeg, refEnd, mafLines) = aln
+                    if refBeg < 0:
+                        refBeg, refEnd = -refEnd, -refBeg
+                        qryBeg, qryEnd = -qryEnd, -qryBeg
+                    yield (qryNum, qryBeg, qryEnd, refName, refBeg, refEnd,
+                           alnNum, fileNum + 1, [], mafLines)
+                qryNum += 1
+
+def addOverlaps(alignmentsSortedByGenome):
+    stash = []
+    for alnB in alignmentsSortedByGenome:
+        newStash = []
+        for alnA in stash:
+            if alnA[3] == alnB[3] and alnA[5] > alnB[4]:
+                if alnA[0] < alnB[0]:
+                    alnA[8].append(alnB)
+                if alnB[0] < alnA[0]:
+                    alnB[8].append(alnA)
+                newStash.append(alnA)
+        stash = newStash
+        stash.append(alnB)
+
+def overlapsOfOneQuery(alignmentsOfOneQuery):
+    for alnA in alignmentsOfOneQuery:
+        for alnB in alnA[8]:
+            yield alnB[0], alnA, alnB
+
+def isSameQueryStrand(alnA, alnB):
+    return (alnA[1] < 0) == (alnB[1] < 0)
+
+def isNonlinearPair(opts, alnX, alnY):
+    if alnX is alnY:
+        return False
+    if alnX[3] != alnY[3]:
+        return "C" in opts.types and isDifferentChromosomes(alnX[3], alnY[3])
+    if not isSameQueryStrand(alnX, alnY):
+        return "S" in opts.types
+    if alnX[1] < alnY[1]:        
+        gap = alnY[4] - alnX[5]
+    else:
+        gap = alnX[4] - alnY[5]
+    if "N" in opts.types and gap + opts.min_rev <= 0:
+        return True
+    if "G" in opts.types and gap >= opts.min_gap:
+        if alnX[6] + 1 == alnY[6] or alnY[6] + 1 == alnX[6]:
+            return True
+    return False
+
+def isSharedRearrangement(opts, overlappingAlignmentPairs):
+    # "A" refers to a query sequence
+    # "B" refers to a different query sequence
+    for j, y in enumerate(overlappingAlignmentPairs):
+        alnAY, alnBY = y
+        for x in overlappingAlignmentPairs[:j]:
+            alnAX, alnBX = x
+            if not isNonlinearPair(opts, alnAX, alnAY):
+                continue
+            if not isNonlinearPair(opts, alnBX, alnBY):
+                continue
+            isSameStrand = isSameQueryStrand(alnAX, alnBX)
+            if isSameQueryStrand(alnAY, alnBY) != isSameStrand:
+                continue
+            isUpstreamInQueryA = (alnAX[6] < alnAY[6])
+            isUpstreamInQueryB = (alnBX[6] < alnBY[6])
+            isSameOrder = (isUpstreamInQueryA == isUpstreamInQueryB)
+            if isSameOrder == isSameStrand:
+                return True
+    return False
+
+def linksBetweenQueries(opts, alignmentsPerQuery):
+    for alns in alignmentsPerQuery:
+        queryNumA = alns[0][0]
+        overlaps = sorted(overlapsOfOneQuery(alns))
+        for queryNumB, v in groupby(overlaps, itemgetter(0)):
+            overlappingAlignmentPairs = [i[1:] for i in v]
+            if isSharedRearrangement(opts, overlappingAlignmentPairs):
+                yield queryNumA, queryNumB
+
+def connectedClumps(opts, alignmentsPerQuery, adjacencyList):
+    for i in connectedComponents(adjacencyList):
+        if len(i) >= opts.min_seqs:
+            yield [alignmentsPerQuery[j] for j in i]
+
+def clumpSortKey(clump):
+    return -len(clump), min(min(a[3:6] for a in q) for q in clump)
+
+def rearrangedSequenceClumps(opts, args):
+    fileNumsToInclude = map(int, opts.yes)
+    fileNumsToExclude = map(int, opts.no)
+
+    fileNames = args if args else ["-"]
+    alignments = list(alignmentsOfRearrangedQuerySequences(opts, fileNames))
+    alignmentsPerQuery = [list(v)
+                          for k, v in groupby(alignments, itemgetter(0))]
+
+    log(opts, "sorting...")
+    alignments.sort(key=itemgetter(3, 4))
+    log(opts, "finding overlaps...")
+    addOverlaps(alignments)
+
+    log(opts, "linking...")
+    adjacencyList = [[] for i in alignmentsPerQuery]
+    for i, j in linksBetweenQueries(opts, alignmentsPerQuery):
+        adjacencyList[i].append(j)
+        adjacencyList[j].append(i)
+
+    log(opts, "clumping...")
+    clumps = list(connectedClumps(opts, alignmentsPerQuery, adjacencyList))
+    clumps.sort(key=clumpSortKey)
+
+    prog = os.path.basename(sys.argv[0])
+    print "#", prog, " ".join(sys.argv[1:])
+    print
+
+    wantedClumps = 0
+    for clumpNum, clump in enumerate(clumps):
+        fileNums = set(i[0][7] for i in clump)
+        if any(i not in fileNums for i in fileNumsToInclude):
+            continue
+        if any(i in fileNums for i in fileNumsToExclude):
+            continue
+        wantedClumps += 1
+        head = "# PART clump{0}_{1}".format(clumpNum + 1, len(clump))
+        if len(fileNames) > 1:
+            head += "_{0}".format(sorted(fileNums))
+        print head
+        print
+        for i in clump:
+            for alignment in i:
+                for line in alignment[9]:
+                    print line,
+                print
+            print
+
+    txt = "wrote {0} of {1} clumps\n".format(wantedClumps, len(clumps))
+    sys.stderr.write(txt)
+
+if __name__ == "__main__":
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # avoid silly error message
+    usage = "%prog [options] maf-file(s)"
+    descr = "Find clumps of rearranged query sequences in query-to-reference alignments."
+    op = optparse.OptionParser(usage=usage, description=descr)
+    op.add_option("-m", "--max-mismap", type="float", default=1e-6,
+                  metavar="PROB", help="discard any alignment with "
+                  "mismap probability > PROB (default=%default)")
+    op.add_option("-s", "--min-seqs", type="int", default=2, metavar="N",
+                  help="minimum query sequences per clump (default=%default)")
+    op.add_option("-t", "--types", metavar="LETTERS", default="CSNG", help=
+                  "rearrangement types: C=inter-chromosome, S=inter-strand, "
+                  "N=non-colinear, G=big gap (default=%default)")
+    op.add_option("-g", "--min-gap", type="float", default=10000, metavar="BP",
+                  help='minimum forward jump in the reference sequence '
+                  'counted as a "big gap" (default=%default)')
+    op.add_option("-r", "--min-rev", type="float", default=1000, metavar="BP",
+                  help='minimum reverse jump in the reference sequence '
+                  'counted as "non-colinear" (default=%default)')
+    op.add_option("-y", "--yes", metavar="FILENUMS", default="",
+                  help="require clumps to include the specified files")
+    op.add_option("-n", "--no", metavar="FILENUMS", default="",
+                  help="require clumps to exclude the specified files")
+    op.add_option("-v", "--verbose", action="count",
+                  help="show progress messages")
+    opts, args = op.parse_args()
+    rearrangedSequenceClumps(opts, args)

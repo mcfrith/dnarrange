@@ -1,0 +1,35 @@
+#! /bin/sh
+# Copyright 2018 Martin C. Frith
+
+test $# -ge 2 || {
+    echo "Usage: $0 [options] alignments output-directory"
+    exit 2
+}
+
+arg1=$1
+arg2=$2
+shift 2
+
+for i
+do
+    shift
+    set -- "$@" "$arg1"
+    arg1=$arg2
+    arg2=$i
+done
+
+mkdir "$arg2" || exit 1
+
+awk '
+/^# PART / {close(f); f = d "/" $3}
+f {print > f}
+' d="$arg2" "$arg1"
+
+for i in "$arg2"/*
+do
+    test -e "$i" || continue
+
+    last-dotplot --sort2=3 --strands2=1 --rot1=v --rot2=h --labels1=2 "$@" "$i" "$i".png
+
+    rm "$i"
+done
