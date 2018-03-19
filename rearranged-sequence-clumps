@@ -177,8 +177,6 @@ def isSameQueryStrand(alnA, alnB):
     return (alnA[1] < 0) == (alnB[1] < 0)
 
 def isNonlinearPair(opts, alnX, alnY):
-    if alnX is alnY:
-        return False
     if alnX[3] != alnY[3]:
         return "C" in opts.types and isDifferentChromosomes(alnX[3], alnY[3])
     if not isSameQueryStrand(alnX, alnY):
@@ -197,16 +195,18 @@ def isNonlinearPair(opts, alnX, alnY):
 def isSharedRearrangement(opts, overlappingAlignmentPairs):
     # "A" refers to a query sequence
     # "B" refers to a different query sequence
-    for j, y in enumerate(overlappingAlignmentPairs):
-        alnAY, alnBY = y
-        for x in overlappingAlignmentPairs[:j]:
-            alnAX, alnBX = x
+    for alnAY, alnBY in overlappingAlignmentPairs:
+        for alnAX, alnBX in overlappingAlignmentPairs:
+            if alnAX is alnAY:
+                break
+            if alnBX is alnBY:
+                continue
             if not isNonlinearPair(opts, alnAX, alnAY):
                 continue
             if not isNonlinearPair(opts, alnBX, alnBY):
                 continue
-            isSameStrand = isSameQueryStrand(alnAX, alnBX)
-            if isSameQueryStrand(alnAY, alnBY) != isSameStrand:
+            isSameStrand = isSameQueryStrand(alnAY, alnBY)
+            if isSameQueryStrand(alnAX, alnBX) != isSameStrand:
                 continue
             isUpstreamInQueryA = (alnAX[6] < alnAY[6])
             isUpstreamInQueryB = (alnBX[6] < alnBY[6])
