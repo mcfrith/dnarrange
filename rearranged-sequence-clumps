@@ -281,6 +281,7 @@ def rearrangedSequenceClumps(opts, args):
             print
 
     txt = "wrote {0} of {1} clumps\n".format(wantedClumps, len(clumps))
+    sys.stdout.flush()
     sys.stderr.write(txt)
 
 if __name__ == "__main__":

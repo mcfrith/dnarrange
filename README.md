@@ -78,7 +78,7 @@ On a Mac, open the folder in Finder, and:
 
 * View the pictures with "Cover Flow" (Command+4), or:
 
-* Select all the pictures (CTRL-A), and view them in slideshow
-  (Option+Spacebar for fullscreen, or Spacebar for non-fullscreen).
-  Use the left and right arrows to move between pictures.  In
-  fullscreen, Spacebar toggles "pause"/"play".
+* Select all the pictures (Command+A), and view them in slideshow
+  (Option+Spacebar) or "Quick Look" (Spacebar).  Use the left and
+  right arrows to move between pictures.  In slideshow, Spacebar
+  toggles "pause"/"play".
