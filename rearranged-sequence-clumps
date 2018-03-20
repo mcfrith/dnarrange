@@ -163,17 +163,19 @@ def addOverlaps(alignmentsSortedByGenome):
         for alnA in stash:
             if alnA[3] == alnB[3] and alnA[5] > alnB[4]:
                 if alnA[0] < alnB[0]:
-                    alnA[8].append(alnB)
+                    alnA[8].append(alnB[6])
                 if alnB[0] < alnA[0]:
-                    alnB[8].append(alnA)
+                    alnB[8].append(alnA[6])
                 newStash.append(alnA)
         stash = newStash
         stash.append(alnB)
 
-def overlapsOfOneQuery(alignmentsOfOneQuery):
+def overlapsOfOneQuery(alignments, alignmentsOfOneQuery):
     for alnA in alignmentsOfOneQuery:
-        for alnB in alnA[8]:
-            yield alnB[0], alnA, alnB
+        alnNumA = alnA[6]
+        for alnNumB in alnA[8]:
+            qryNumB = alignments[alnNumB][0]
+            yield qryNumB, alnNumA, alnNumB
 
 def isSameQueryStrand(alnA, alnB):
     return (alnA[1] < 0) == (alnB[1] < 0)
@@ -194,36 +196,44 @@ def isNonlinearPair(opts, alnX, alnY):
             return True
     return False
 
-def isSharedRearrangement(opts, overlapsBetweenTwoQueries):
+def isSharedRearrangement(opts, alignments, overlapsBetweenTwoQueries):
     # "A" refers to a query sequence
     # "B" refers to a different query sequence
-    overlappingAlignmentPairs = [i[1:] for i in overlapsBetweenTwoQueries]
-    for alnAY, alnBY in overlappingAlignmentPairs:
-        for alnAX, alnBX in overlappingAlignmentPairs:
-            if alnAX is alnAY:
+    overlapsPerAlnA = groupby(overlapsBetweenTwoQueries, itemgetter(1))
+    groups = [(alnNumA, [i[2] for i in v]) for alnNumA, v in overlapsPerAlnA]
+
+    for alnNumAY, alnNumsBY in groups:
+        for alnNumAX, alnNumsBX in groups:
+            if alnNumAX == alnNumAY:
                 break
-            if alnBX is alnBY:
-                continue
+            alnAX = alignments[alnNumAX]
+            alnAY = alignments[alnNumAY]
             if not isNonlinearPair(opts, alnAX, alnAY):
                 continue
-            if not isNonlinearPair(opts, alnBX, alnBY):
-                continue
-            isSameStrand = isSameQueryStrand(alnAY, alnBY)
-            if isSameQueryStrand(alnAX, alnBX) != isSameStrand:
-                continue
-            isUpstreamInQueryA = (alnAX[6] < alnAY[6])
-            isUpstreamInQueryB = (alnBX[6] < alnBY[6])
-            isSameOrder = (isUpstreamInQueryA == isUpstreamInQueryB)
-            if isSameOrder == isSameStrand:
-                return True
+            for alnNumBY in alnNumsBY:
+                for alnNumBX in alnNumsBX:
+                    if alnNumBX == alnNumBY:
+                        continue
+                    alnBX = alignments[alnNumBX]
+                    alnBY = alignments[alnNumBY]
+                    if not isNonlinearPair(opts, alnBX, alnBY):
+                        continue
+                    isSameStrand = isSameQueryStrand(alnAY, alnBY)
+                    if isSameQueryStrand(alnAX, alnBX) != isSameStrand:
+                        continue
+                    isUpstreamInQueryA = (alnNumAX < alnNumAY)
+                    isUpstreamInQueryB = (alnNumBX < alnNumBY)
+                    isSameOrder = (isUpstreamInQueryA == isUpstreamInQueryB)
+                    if isSameOrder == isSameStrand:
+                        return True
     return False
 
-def linksBetweenQueries(opts, alignmentsPerQuery):
+def linksBetweenQueries(opts, alignments, alignmentsPerQuery):
     for alignmentsOfOneQuery in alignmentsPerQuery:
         qryNumA = alignmentsOfOneQuery[0][0]
-        overlaps = sorted(overlapsOfOneQuery(alignmentsOfOneQuery))
+        overlaps = sorted(overlapsOfOneQuery(alignments, alignmentsOfOneQuery))
         for qryNumB, v in groupby(overlaps, itemgetter(0)):
-            if isSharedRearrangement(opts, v):
+            if isSharedRearrangement(opts, alignments, v):
                 yield qryNumA, qryNumB
 
 def connectedClumps(opts, alignmentsPerQuery, adjacencyList):
@@ -244,13 +254,13 @@ def rearrangedSequenceClumps(opts, args):
                           for k, v in groupby(alignments, itemgetter(0))]
 
     log(opts, "sorting...")
-    alignments.sort(key=itemgetter(3, 4))
+    alignmentsSortedByGenome = sorted(alignments, key=itemgetter(3, 4))
     log(opts, "finding overlaps...")
-    addOverlaps(alignments)
+    addOverlaps(alignmentsSortedByGenome)
 
     log(opts, "linking...")
     adjacencyList = [[] for i in alignmentsPerQuery]
-    for i, j in linksBetweenQueries(opts, alignmentsPerQuery):
+    for i, j in linksBetweenQueries(opts, alignments, alignmentsPerQuery):
         adjacencyList[i].append(j)
         adjacencyList[j].append(i)
 
