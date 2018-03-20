@@ -138,13 +138,14 @@ def isRearranged(opts, alignmentsOfOneQuery):
 
 def alignmentsOfRearrangedQuerySequences(opts, fileNames):
     qryNum = 0
+    alnNum = 0
     for fileNum, fileName in enumerate(fileNames):
         log(opts, "reading {0}...".format(fileName))
         alignments = alignmentsFromMaf(opts, myOpen(fileName))
         for k, v in groupby(alignments, itemgetter(0)):
             alignmentsOfOneQuery = sorted(v)
             if isRearranged(opts, alignmentsOfOneQuery):
-                for alnNum, aln in enumerate(alignmentsOfOneQuery):
+                for aln in alignmentsOfOneQuery:
                     (qryName, qryBeg, qryEnd,
                      refName, refBeg, refEnd, mafLines) = aln
                     if refBeg < 0:
@@ -152,6 +153,7 @@ def alignmentsOfRearrangedQuerySequences(opts, fileNames):
                         qryBeg, qryEnd = -qryEnd, -qryBeg
                     yield (qryNum, qryBeg, qryEnd, refName, refBeg, refEnd,
                            alnNum, fileNum + 1, [], mafLines)
+                    alnNum += 1
                 qryNum += 1
 
 def addOverlaps(alignmentsSortedByGenome):
@@ -192,9 +194,10 @@ def isNonlinearPair(opts, alnX, alnY):
             return True
     return False
 
-def isSharedRearrangement(opts, overlappingAlignmentPairs):
+def isSharedRearrangement(opts, overlapsBetweenTwoQueries):
     # "A" refers to a query sequence
     # "B" refers to a different query sequence
+    overlappingAlignmentPairs = [i[1:] for i in overlapsBetweenTwoQueries]
     for alnAY, alnBY in overlappingAlignmentPairs:
         for alnAX, alnBX in overlappingAlignmentPairs:
             if alnAX is alnAY:
@@ -216,13 +219,12 @@ def isSharedRearrangement(opts, overlappingAlignmentPairs):
     return False
 
 def linksBetweenQueries(opts, alignmentsPerQuery):
-    for alns in alignmentsPerQuery:
-        queryNumA = alns[0][0]
-        overlaps = sorted(overlapsOfOneQuery(alns))
-        for queryNumB, v in groupby(overlaps, itemgetter(0)):
-            overlappingAlignmentPairs = [i[1:] for i in v]
-            if isSharedRearrangement(opts, overlappingAlignmentPairs):
-                yield queryNumA, queryNumB
+    for alignmentsOfOneQuery in alignmentsPerQuery:
+        qryNumA = alignmentsOfOneQuery[0][0]
+        overlaps = sorted(overlapsOfOneQuery(alignmentsOfOneQuery))
+        for qryNumB, v in groupby(overlaps, itemgetter(0)):
+            if isSharedRearrangement(opts, v):
+                yield qryNumA, qryNumB
 
 def connectedClumps(opts, alignmentsPerQuery, adjacencyList):
     for i in connectedComponents(adjacencyList):
