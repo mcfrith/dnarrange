@@ -244,9 +244,14 @@ def connectedClumps(opts, alignmentsPerQuery, adjacencyList):
 def clumpSortKey(clump):
     return -len(clump), min(min(a[3:6] for a in q) for q in clump)
 
+def fileNumsFromText(text):
+    if text:
+        return map(int, text.split(","))
+    return []
+
 def rearrangedSequenceClumps(opts, args):
-    fileNumsToInclude = map(int, opts.yes)
-    fileNumsToExclude = map(int, opts.no)
+    fileNumsToInclude = fileNumsFromText(opts.yes)
+    fileNumsToExclude = fileNumsFromText(opts.no)
 
     fileNames = args if args else ["-"]
     alignments = list(alignmentsOfRearrangedQuerySequences(opts, fileNames))
@@ -280,9 +285,9 @@ def rearrangedSequenceClumps(opts, args):
         if any(i in fileNums for i in fileNumsToExclude):
             continue
         wantedClumps += 1
-        head = "# PART clump{0}_{1}".format(clumpNum + 1, len(clump))
+        head = "# PART clump{0}-{1}".format(clumpNum + 1, len(clump))
         if len(fileNames) > 1:
-            head += "_{0}".format(sorted(fileNums))
+            head += "-{0}".format("_".join(sorted(fileNums)))
         print head
         print
         for i in clump:
@@ -315,9 +320,9 @@ if __name__ == "__main__":
     op.add_option("-r", "--min-rev", type="float", default=1000, metavar="BP",
                   help='minimum reverse jump in the reference sequence '
                   'counted as "non-colinear" (default=%default)')
-    op.add_option("-y", "--yes", metavar="FILENUMS", default="",
+    op.add_option("-y", "--yes", metavar="LIST", default="",
                   help="require clumps to include the specified files")
-    op.add_option("-n", "--no", metavar="FILENUMS", default="",
+    op.add_option("-n", "--no", metavar="LIST", default="",
                   help="require clumps to exclude the specified files")
     op.add_option("-v", "--verbose", action="count",
                   help="show progress messages")
