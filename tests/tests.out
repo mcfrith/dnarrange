@@ -709,3 +709,8 @@ s 8617f730 7538 12075 + 19627 AGTTAAGAT-CTATGTAGTTTATTTGAGCACAACTGCAAGTCTTAGCCAG
 
 wrote 3 of 3 clumps
 
+TEST rearranged-sequence-clumps -s1 mito.maf
+# rearranged-sequence-clumps -s1 mito.maf
+
+wrote 0 of 0 clumps
+

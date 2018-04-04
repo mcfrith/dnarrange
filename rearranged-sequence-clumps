@@ -75,6 +75,9 @@ def alignmentsFromMaf(opts, lines):
     if qryName and mismap <= opts.max_mismap:
         yield fields
 
+def isCircularChromosome(name):
+    return name in ("chrM", "M")  # xxx ???
+
 def isKnownChromosome(name):
     unknownPrefixes = "chrUn", "Un"  # xxx ???
     return not name.startswith(unknownPrefixes)
@@ -109,6 +112,8 @@ def isNonlinear(sortedAlignmentsOfOneQuery, opts):
     """Is any pair of alignments non-colinear on the same strand?"""
     maxCoordinates = {}
     for i in sortedAlignmentsOfOneQuery:
+        if isCircularChromosome(i[3]):
+            continue
         k = refNameAndStrand(i)
         if k in maxCoordinates:
             m = maxCoordinates[k]
@@ -190,7 +195,8 @@ def isNonlinearPair(opts, alnX, alnY):
     else:
         gap = alnX[4] - alnY[5]
     if "N" in opts.types and gap + opts.min_rev <= 0:
-        return True
+        if not isCircularChromosome(alnX[3]):
+            return True
     if "G" in opts.types and gap >= opts.min_gap:
         if alnX[6] + 1 == alnY[6] or alnY[6] + 1 == alnX[6]:
             return True
