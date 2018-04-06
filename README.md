@@ -20,6 +20,16 @@ directory `clump-pics`:
 
     last-multiplot clumps.maf clump-pics
 
+## Multiple input files
+
+You can find clumps from multiple files, for example:
+
+    rearranged-sequence-clumps -n2,3 child.maf mother.maf father.maf > child-only.maf
+
+This will find clumps from all DNA reads in all files, and print
+clumps that have no reads from file number 2 (`mother.maf`) or file
+number 3 (`father.maf`).
+
 ## `rearranged-sequence-clumps` options
 
 - `-h`, `--help`: show a help message, with default option values, and
