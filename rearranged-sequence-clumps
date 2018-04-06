@@ -293,7 +293,7 @@ def rearrangedSequenceClumps(opts, args):
         wantedClumps += 1
         head = "# PART clump{0}-{1}".format(clumpNum + 1, len(clump))
         if len(fileNames) > 1:
-            head += "-{0}".format("_".join(sorted(fileNums)))
+            head += "-{0}".format("_".join(map(str, sorted(fileNums))))
         print head
         print
         for i in clump:
