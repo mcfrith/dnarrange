@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 # Copyright 2018 Martin C. Frith
 
+from __future__ import print_function
+
 import gzip
 import optparse
 import os
@@ -279,9 +281,8 @@ def rearrangedSequenceClumps(opts, args):
     clumps = list(connectedClumps(opts, alignmentsPerQuery, adjacencyList))
     clumps.sort(key=clumpSortKey)
 
-    prog = os.path.basename(sys.argv[0])
-    print "#", prog, " ".join(sys.argv[1:])
-    print
+    print("#", os.path.basename(sys.argv[0]), *sys.argv[1:])
+    print()
 
     wantedClumps = 0
     for clumpNum, clump in enumerate(clumps):
@@ -294,14 +295,14 @@ def rearrangedSequenceClumps(opts, args):
         head = "# PART clump{0}-{1}".format(clumpNum + 1, len(clump))
         if len(fileNames) > 1:
             head += "-{0}".format("_".join(map(str, sorted(fileNums))))
-        print head
-        print
+        print(head)
+        print()
         for i in clump:
             for alignment in i:
                 for line in alignment[9]:
-                    print line,
-                print
-            print
+                    print(line, end="")
+                print()
+            print()
 
     txt = "wrote {0} of {1} clumps\n".format(wantedClumps, len(clumps))
     sys.stdout.flush()
