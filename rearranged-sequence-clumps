@@ -143,6 +143,13 @@ def isRearranged(opts, alignmentsOfOneQuery):
             "N" in opts.types and isNonlinear(alignmentsOfOneQuery, opts) or
             "G" in opts.types and isBigGap(alignmentsOfOneQuery, opts))
 
+def newAlnFromOldAln(oldAln, qryNum, alnNum):
+    qryName, qryBeg, qryEnd, refName, refBeg, refEnd, _ = oldAln
+    if refBeg < 0:
+        refBeg, refEnd = -refEnd, -refBeg
+        qryBeg, qryEnd = -qryEnd, -qryBeg
+    return qryNum, qryBeg, qryEnd, refName, refBeg, refEnd, alnNum, []
+
 def alignmentsPerRearrangedQuerySequence(opts, fileNames):
     qryNum = 0
     alnNum = 0
@@ -153,15 +160,8 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
             alignmentsOfOneQuery = sorted(v)
             if isRearranged(opts, alignmentsOfOneQuery):
                 newAlns = []
-                for aln in alignmentsOfOneQuery:
-                    (qryName, qryBeg, qryEnd,
-                     refName, refBeg, refEnd, mafLines) = aln
-                    if refBeg < 0:
-                        refBeg, refEnd = -refEnd, -refBeg
-                        qryBeg, qryEnd = -qryEnd, -qryBeg
-                    a = (qryNum, qryBeg, qryEnd, refName, refBeg, refEnd,
-                         alnNum, [])
-                    newAlns.append(a)
+                for i in alignmentsOfOneQuery:
+                    newAlns.append(newAlnFromOldAln(i, qryNum, alnNum))
                     alnNum += 1
                 alignmentTexts = [i[6] for i in alignmentsOfOneQuery]
                 yield newAlns, alignmentTexts, fileNum + 1
