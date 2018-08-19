@@ -8,7 +8,7 @@ import optparse
 import os
 import signal
 import sys
-from itertools import groupby
+from itertools import chain, groupby
 from operator import itemgetter
 
 def myOpen(fileName):  # faster than fileinput
@@ -143,7 +143,7 @@ def isRearranged(opts, alignmentsOfOneQuery):
             "N" in opts.types and isNonlinear(alignmentsOfOneQuery, opts) or
             "G" in opts.types and isBigGap(alignmentsOfOneQuery, opts))
 
-def alignmentsOfRearrangedQuerySequences(opts, fileNames):
+def alignmentsPerRearrangedQuerySequence(opts, fileNames):
     qryNum = 0
     alnNum = 0
     for fileNum, fileName in enumerate(fileNames):
@@ -152,15 +152,18 @@ def alignmentsOfRearrangedQuerySequences(opts, fileNames):
         for k, v in groupby(alignments, itemgetter(0)):
             alignmentsOfOneQuery = sorted(v)
             if isRearranged(opts, alignmentsOfOneQuery):
+                newAlns = []
                 for aln in alignmentsOfOneQuery:
                     (qryName, qryBeg, qryEnd,
                      refName, refBeg, refEnd, mafLines) = aln
                     if refBeg < 0:
                         refBeg, refEnd = -refEnd, -refBeg
                         qryBeg, qryEnd = -qryEnd, -qryBeg
-                    yield (qryNum, qryBeg, qryEnd, refName, refBeg, refEnd,
-                           alnNum, fileNum + 1, [], mafLines)
+                    a = (qryNum, qryBeg, qryEnd, refName, refBeg, refEnd,
+                         alnNum, fileNum + 1, [], mafLines)
+                    newAlns.append(a)
                     alnNum += 1
+                yield newAlns
                 qryNum += 1
 
 def addOverlaps(alignmentsSortedByGenome):
@@ -262,9 +265,9 @@ def rearrangedSequenceClumps(opts, args):
     fileNumsToExclude = fileNumsFromText(opts.no)
 
     fileNames = args if args else ["-"]
-    alignments = list(alignmentsOfRearrangedQuerySequences(opts, fileNames))
-    alignmentsPerQuery = [list(v)
-                          for k, v in groupby(alignments, itemgetter(0))]
+    alignmentsPerQuery = list(alignmentsPerRearrangedQuerySequence(opts,
+                                                                   fileNames))
+    alignments = list(chain.from_iterable(alignmentsPerQuery))
 
     log(opts, "sorting...")
     alignmentsSortedByGenome = sorted(alignments, key=itemgetter(3, 4))
