@@ -160,11 +160,11 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
                         refBeg, refEnd = -refEnd, -refBeg
                         qryBeg, qryEnd = -qryEnd, -qryBeg
                     a = (qryNum, qryBeg, qryEnd, refName, refBeg, refEnd,
-                         alnNum, fileNum + 1, [])
+                         alnNum, [])
                     newAlns.append(a)
                     alnNum += 1
                 alignmentTexts = [i[6] for i in alignmentsOfOneQuery]
-                yield newAlns, alignmentTexts
+                yield newAlns, alignmentTexts, fileNum + 1
                 qryNum += 1
 
 def addOverlaps(alignmentsSortedByGenome):
@@ -174,9 +174,9 @@ def addOverlaps(alignmentsSortedByGenome):
         for alnA in stash:
             if alnA[3] == alnB[3] and alnA[5] > alnB[4]:
                 if alnA[0] < alnB[0]:
-                    alnA[8].append(alnB[6])
+                    alnA[7].append(alnB[6])
                 if alnB[0] < alnA[0]:
-                    alnB[8].append(alnA[6])
+                    alnB[7].append(alnA[6])
                 newStash.append(alnA)
         stash = newStash
         stash.append(alnB)
@@ -184,7 +184,7 @@ def addOverlaps(alignmentsSortedByGenome):
 def overlapsOfOneQuery(alignments, alignmentsOfOneQuery):
     for alnA in alignmentsOfOneQuery:
         alnNumA = alnA[6]
-        for alnNumB in alnA[8]:
+        for alnNumB in alnA[7]:
             qryNumB = alignments[alnNumB][0]
             yield qryNumB, alnNumA, alnNumB
 
@@ -269,6 +269,7 @@ def rearrangedSequenceClumps(opts, args):
     dataPerQuery = list(alignmentsPerRearrangedQuerySequence(opts, fileNames))
     alignmentsPerQuery = [i[0] for i in dataPerQuery]
     alignmentTextsPerQuery = [i[1] for i in dataPerQuery]
+    fileNumsPerQuery = [i[2] for i in dataPerQuery]
     alignments = list(chain.from_iterable(alignmentsPerQuery))
 
     log(opts, "sorting...")
@@ -291,7 +292,7 @@ def rearrangedSequenceClumps(opts, args):
 
     wantedClumps = 0
     for clumpNum, clump in enumerate(clumps):
-        fileNums = set(i[0][7] for i in clump)
+        fileNums = set(fileNumsPerQuery[i[0][0]] for i in clump)
         if any(i not in fileNums for i in fileNumsToInclude):
             continue
         if any(i in fileNums for i in fileNumsToExclude):
