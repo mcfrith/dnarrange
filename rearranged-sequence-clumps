@@ -160,10 +160,11 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
                         refBeg, refEnd = -refEnd, -refBeg
                         qryBeg, qryEnd = -qryEnd, -qryBeg
                     a = (qryNum, qryBeg, qryEnd, refName, refBeg, refEnd,
-                         alnNum, fileNum + 1, [], mafLines)
+                         alnNum, fileNum + 1, [])
                     newAlns.append(a)
                     alnNum += 1
-                yield newAlns
+                alignmentTexts = [i[6] for i in alignmentsOfOneQuery]
+                yield newAlns, alignmentTexts
                 qryNum += 1
 
 def addOverlaps(alignmentsSortedByGenome):
@@ -265,8 +266,9 @@ def rearrangedSequenceClumps(opts, args):
     fileNumsToExclude = fileNumsFromText(opts.no)
 
     fileNames = args if args else ["-"]
-    alignmentsPerQuery = list(alignmentsPerRearrangedQuerySequence(opts,
-                                                                   fileNames))
+    dataPerQuery = list(alignmentsPerRearrangedQuerySequence(opts, fileNames))
+    alignmentsPerQuery = [i[0] for i in dataPerQuery]
+    alignmentTextsPerQuery = [i[1] for i in dataPerQuery]
     alignments = list(chain.from_iterable(alignmentsPerQuery))
 
     log(opts, "sorting...")
@@ -301,8 +303,9 @@ def rearrangedSequenceClumps(opts, args):
         print(head)
         print()
         for i in clump:
-            for alignment in i:
-                for line in alignment[9]:
+            qryNum = i[0][0]
+            for t in alignmentTextsPerQuery[qryNum]:
+                for line in t:
                     print(line, end="")
                 print()
             print()
