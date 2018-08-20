@@ -68,8 +68,8 @@ def alignmentsFromMaf(opts, lines):
                     if qryBeg < 0:  # use forward strand of query:
                         qryBeg, qryEnd = -qryEnd, -qryBeg
                         refBeg, refEnd = -refEnd, -refBeg
-                    out = (qryName, qryBeg, qryEnd,
-                           refName, refBeg, refEnd, mafLines)
+                    aln = qryName, qryBeg, qryEnd, refName, refBeg, refEnd
+                    out = qryName, aln, mafLines
                 else:
                     refFields = fieldsFromMaf(line)
             elif line[0] == "a":
@@ -146,7 +146,7 @@ def isRearranged(opts, alignmentsOfOneQuery):
             "G" in opts.types and isBigGap(alignmentsOfOneQuery, opts))
 
 def newAlnFromOldAln(oldAln, qryNum, alnNum):
-    qryName, qryBeg, qryEnd, refName, refBeg, refEnd, _ = oldAln
+    qryName, qryBeg, qryEnd, refName, refBeg, refEnd = oldAln
     if refBeg < 0:
         refBeg, refEnd = -refEnd, -refBeg
         qryBeg, qryEnd = -qryEnd, -qryBeg
@@ -159,13 +159,14 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
         log(opts, "reading {0}...".format(fileName))
         alignments = alignmentsFromMaf(opts, myOpen(fileName))
         for k, v in groupby(alignments, itemgetter(0)):
-            alignmentsOfOneQuery = sorted(v)
+            v = sorted(v)
+            alignmentsOfOneQuery = [i[1] for i in v]
             if isRearranged(opts, alignmentsOfOneQuery):
                 newAlns = []
                 for i in alignmentsOfOneQuery:
                     newAlns.append(newAlnFromOldAln(i, qryNum, alnNum))
                     alnNum += 1
-                alignmentTexts = [i[6] for i in alignmentsOfOneQuery]
+                alignmentTexts = [i[2] for i in v]
                 yield newAlns, alignmentTexts, fileNum + 1
                 qryNum += 1
 
