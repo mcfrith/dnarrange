@@ -49,33 +49,35 @@ def fieldsFromMaf(line):
 
 def alignmentsFromMaf(opts, lines):
     mafLines = []
-    refName = qryName = ""
+    refFields = qryFields = None
     mismap = 0.0
     for line in lines:
         if line.isspace():
-            if qryName and mismap <= opts.max_mismap:
-                yield fields
+            if qryFields and mismap <= opts.max_mismap:
+                yield out
             mafLines = []
-            refName = qryName = ""
+            refFields = qryFields = None
             mismap = 0.0
         elif line[0] != "#":
             mafLines.append(line)
             if line[0] == "s":
-                if refName:
-                    qryName, qryBeg, qryEnd = fieldsFromMaf(line)
+                if refFields:
+                    qryFields = fieldsFromMaf(line)
+                    qryName, qryBeg, qryEnd = qryFields
+                    refName, refBeg, refEnd = refFields
                     if qryBeg < 0:  # use forward strand of query:
                         qryBeg, qryEnd = -qryEnd, -qryBeg
                         refBeg, refEnd = -refEnd, -refBeg
-                    fields = (qryName, qryBeg, qryEnd,
-                              refName, refBeg, refEnd, mafLines)
+                    out = (qryName, qryBeg, qryEnd,
+                           refName, refBeg, refEnd, mafLines)
                 else:
-                    refName, refBeg, refEnd = fieldsFromMaf(line)
+                    refFields = fieldsFromMaf(line)
             elif line[0] == "a":
                 for i in line.split():
                     if i.startswith("mismap="):
                         mismap = float(i[7:])
-    if qryName and mismap <= opts.max_mismap:
-        yield fields
+    if qryFields and mismap <= opts.max_mismap:
+        yield out
 
 def isCircularChromosome(name):
     return name in ("chrM", "M")  # xxx ???
