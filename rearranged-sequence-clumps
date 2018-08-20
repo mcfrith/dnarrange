@@ -4,6 +4,7 @@
 from __future__ import print_function
 
 import gzip
+import math
 import optparse
 import os
 import signal
@@ -40,12 +41,40 @@ def connectedComponents(adjacencyList):
             yield sorted(connectedComponent(adjacencyList, isNew, i))
 
 def fieldsFromMaf(line):
-    _, seqName, start, span, strand, seqLen, _ = line.split(None, 6)
-    # the "split" parameters are unnecessary, but make it faster
+    _, seqName, start, span, strand, seqLen, seq = line.split()
     beg = int(start)
     if strand == "-":
         beg -= int(seqLen)  # use negative coordinates for reverse strands
-    return seqName, beg, beg + int(span)
+    return seqName, beg, seq
+
+def findBigGap(text, start, minGap):
+    g = "-" * min(minGap, len(text) + 1)
+    i = text.find(g, start)
+    if i < 0:
+        i = len(text)
+    j = i + minGap
+    while j < len(text) and text[j] == "-":
+        j += 1
+    return i, j
+
+def splitAtBigGaps(opts, refFields, qryFields):
+    refName, refBeg, refSeq = refFields
+    qryName, qryBeg, qrySeq = qryFields
+    minGap = int(math.ceil(opts.min_gap))
+    alnPos = 0
+    while alnPos < len(qrySeq):
+        gapBeg, gapEnd = findBigGap(qrySeq, alnPos, minGap)
+        dist = gapBeg - alnPos
+        refEnd = refBeg + dist - refSeq.count("-", alnPos, gapBeg)
+        qryEnd = qryBeg + dist - qrySeq.count("-", alnPos, gapBeg)
+        if dist:
+            if qryBeg >= 0:
+                yield qryName, qryBeg, qryEnd, refName, refBeg, refEnd
+            else:  # use forward strand of query:
+                yield qryName, -qryEnd, -qryBeg, refName, -refEnd, -refBeg
+        refBeg = refEnd + (gapEnd - gapBeg)
+        qryBeg = qryEnd
+        alnPos = gapEnd
 
 def alignmentsFromMaf(opts, lines):
     mafLines = []
@@ -63,13 +92,9 @@ def alignmentsFromMaf(opts, lines):
             if line[0] == "s":
                 if refFields:
                     qryFields = fieldsFromMaf(line)
-                    qryName, qryBeg, qryEnd = qryFields
-                    refName, refBeg, refEnd = refFields
-                    if qryBeg < 0:  # use forward strand of query:
-                        qryBeg, qryEnd = -qryEnd, -qryBeg
-                        refBeg, refEnd = -refEnd, -refBeg
-                    aln = qryName, qryBeg, qryEnd, refName, refBeg, refEnd
-                    out = qryName, aln, mafLines
+                    alns = list(splitAtBigGaps(opts, refFields, qryFields))
+                    qryName = qryFields[0]
+                    out = qryName, alns, mafLines
                 else:
                     refFields = fieldsFromMaf(line)
             elif line[0] == "a":
@@ -159,8 +184,8 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
         log(opts, "reading {0}...".format(fileName))
         alignments = alignmentsFromMaf(opts, myOpen(fileName))
         for k, v in groupby(alignments, itemgetter(0)):
-            v = sorted(v)
-            alignmentsOfOneQuery = [i[1] for i in v]
+            v = list(v)
+            alignmentsOfOneQuery = sorted(chain.from_iterable(i[1] for i in v))
             if isRearranged(opts, alignmentsOfOneQuery):
                 newAlns = []
                 for i in alignmentsOfOneQuery:
