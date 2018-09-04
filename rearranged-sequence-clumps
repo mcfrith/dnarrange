@@ -219,6 +219,9 @@ def overlapsOfOneQuery(alignments, alignmentsOfOneQuery):
 def isSameQueryStrand(alnA, alnB):
     return (alnA[1] < 0) == (alnB[1] < 0)
 
+def isAdjacent(alnX, alnY):
+    return alnX[6] + 1 == alnY[6] or alnY[6] + 1 == alnX[6]
+
 def isNonlinearPair(opts, alnX, alnY):
     if alnX[3] != alnY[3]:
         return "C" in opts.types and isDifferentChromosomes(alnX[3], alnY[3])
@@ -232,11 +235,11 @@ def isNonlinearPair(opts, alnX, alnY):
         if not isCircularChromosome(alnX[3]):
             return True
     if "G" in opts.types and gap >= opts.min_gap:
-        if alnX[6] + 1 == alnY[6] or alnY[6] + 1 == alnX[6]:
+        if isAdjacent(alnX, alnY):
             return True
     return False
 
-def isSharedRearrangement(opts, alignments, overlapsBetweenTwoQueries):
+def isAnySharedRearrangement(opts, alignments, overlapsBetweenTwoQueries):
     # "A" refers to a query sequence
     # "B" refers to a different query sequence
     overlapsPerAlnA = groupby(overlapsBetweenTwoQueries, itemgetter(1))
@@ -256,15 +259,15 @@ def isSharedRearrangement(opts, alignments, overlapsBetweenTwoQueries):
                         continue
                     alnBX = alignments[alnNumBX]
                     alnBY = alignments[alnNumBY]
-                    if not isNonlinearPair(opts, alnBX, alnBY):
-                        continue
                     isSameStrand = isSameQueryStrand(alnAY, alnBY)
                     if isSameQueryStrand(alnAX, alnBX) != isSameStrand:
                         continue
                     isUpstreamInQueryA = (alnNumAX < alnNumAY)
                     isUpstreamInQueryB = (alnNumBX < alnNumBY)
                     isSameOrder = (isUpstreamInQueryA == isUpstreamInQueryB)
-                    if isSameOrder == isSameStrand:
+                    if isSameOrder != isSameStrand:
+                        continue
+                    if isNonlinearPair(opts, alnBX, alnBY):
                         return True
     return False
 
@@ -272,8 +275,8 @@ def linksBetweenQueries(opts, alignments, alignmentsPerQuery):
     for alignmentsOfOneQuery in alignmentsPerQuery:
         qryNumA = alignmentsOfOneQuery[0][0]
         overlaps = sorted(overlapsOfOneQuery(alignments, alignmentsOfOneQuery))
-        for qryNumB, v in groupby(overlaps, itemgetter(0)):
-            if isSharedRearrangement(opts, alignments, v):
+        for qryNumB, g in groupby(overlaps, itemgetter(0)):
+            if isAnySharedRearrangement(opts, alignments, g):
                 yield qryNumA, qryNumB
 
 def connectedClumps(opts, alignmentsPerQuery, adjacencyList):
