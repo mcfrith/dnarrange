@@ -239,14 +239,11 @@ def isNonlinearPair(opts, alnX, alnY):
             return True
     return False
 
-def isAnySharedRearrangement(opts, alignments, overlapsBetweenTwoQueries):
+def isAnySharedRearrangement(opts, alignments, overlapsPerAlnA):
     # "A" refers to a query sequence
     # "B" refers to a different query sequence
-    overlapsPerAlnA = groupby(overlapsBetweenTwoQueries, itemgetter(1))
-    groups = [(alnNumA, [i[2] for i in v]) for alnNumA, v in overlapsPerAlnA]
-
-    for alnNumAY, alnNumsBY in groups:
-        for alnNumAX, alnNumsBX in groups:
+    for alnNumAY, alnNumsBY in overlapsPerAlnA:
+        for alnNumAX, alnNumsBX in overlapsPerAlnA:
             if alnNumAX == alnNumAY:
                 break
             alnAX = alignments[alnNumAX]
@@ -276,7 +273,9 @@ def linksBetweenQueries(opts, alignments, alignmentsPerQuery):
         qryNumA = alignmentsOfOneQuery[0][0]
         overlaps = sorted(overlapsOfOneQuery(alignments, alignmentsOfOneQuery))
         for qryNumB, g in groupby(overlaps, itemgetter(0)):
-            if isAnySharedRearrangement(opts, alignments, g):
+            overlapsPerAlnA = [(alnNumA, [i[2] for i in h])
+                               for alnNumA, h in groupby(g, itemgetter(1))]
+            if isAnySharedRearrangement(opts, alignments, overlapsPerAlnA):
                 yield qryNumA, qryNumB
 
 def connectedClumps(opts, alignmentsPerQuery, adjacencyList):
