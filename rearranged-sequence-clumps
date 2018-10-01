@@ -195,9 +195,9 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
                 yield newAlns, alignmentTexts, fileNum + 1
                 qryNum += 1
 
-def addOverlaps(alignmentsSortedByGenome):
+def addOverlaps(alignmentsInGenomeOrder):
     stash = []
-    for alnB in alignmentsSortedByGenome:
+    for alnB in alignmentsInGenomeOrder:
         newStash = []
         for alnA in stash:
             if alnA[3] == alnB[3] and alnA[5] > alnB[4]:
@@ -266,9 +266,12 @@ def isSharedRearrangement(opts, alnAX, alnAY, alnBX, alnBY):
             return False
         return endBX < begAY and begBY > endAX
 
-def isAnySharedRearrangement(opts, alignments, overlapsPerAlnA):
+def isAnySharedRearrangement(opts, alignments, overlapsBetweenTwoQueries):
     # "A" refers to a query sequence
     # "B" refers to a different query sequence
+    groups = groupby(overlapsBetweenTwoQueries, itemgetter(1))
+    overlapsPerAlnA = [(alnNumA, [i[2] for i in v]) for alnNumA, v in groups]
+
     for alnNumAY, alnNumsBY in overlapsPerAlnA:
         for alnNumAX, alnNumsBX in overlapsPerAlnA:
             if alnNumAX == alnNumAY:
@@ -300,9 +303,7 @@ def linksBetweenQueries(opts, alignments, alignmentsPerQuery):
         qryNumA = alignmentsOfOneQuery[0][0]
         overlaps = sorted(overlapsOfOneQuery(alignments, alignmentsOfOneQuery))
         for qryNumB, g in groupby(overlaps, itemgetter(0)):
-            overlapsPerAlnA = [(alnNumA, [i[2] for i in h])
-                               for alnNumA, h in groupby(g, itemgetter(1))]
-            if isAnySharedRearrangement(opts, alignments, overlapsPerAlnA):
+            if isAnySharedRearrangement(opts, alignments, g):
                 yield qryNumA, qryNumB
 
 def connectedClumps(opts, alignmentsPerQuery, adjacencyList):
@@ -330,9 +331,9 @@ def rearrangedSequenceClumps(opts, args):
     alignments = list(chain.from_iterable(alignmentsPerQuery))
 
     log(opts, "sorting...")
-    alignmentsSortedByGenome = sorted(alignments, key=itemgetter(3, 4))
+    alignmentsInGenomeOrder = sorted(alignments, key=itemgetter(3, 4))
     log(opts, "finding overlaps...")
-    addOverlaps(alignmentsSortedByGenome)
+    addOverlaps(alignmentsInGenomeOrder)
 
     log(opts, "linking...")
     adjacencyList = [[] for i in alignmentsPerQuery]
