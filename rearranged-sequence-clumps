@@ -4,6 +4,7 @@
 from __future__ import print_function
 
 import gzip
+import logging
 import math
 import optparse
 import os
@@ -18,10 +19,6 @@ def myOpen(fileName):  # faster than fileinput
     if fileName.endswith(".gz"):
         return gzip.open(fileName)
     return open(fileName)
-
-def log(opts, s):
-    if opts.verbose:
-        sys.stderr.write(s + "\n")
 
 def connectedComponent(adjacencyList, isNew, i):
     stack = [i]
@@ -181,7 +178,7 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
     qryNum = 0
     alnNum = 0
     for fileNum, fileName in enumerate(fileNames):
-        log(opts, "reading {0}...".format(fileName))
+        logging.info("reading {0}...".format(fileName))
         alignments = alignmentsFromMaf(opts, myOpen(fileName))
         for k, v in groupby(alignments, itemgetter(0)):
             v = list(v)
@@ -196,6 +193,7 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
                 qryNum += 1
 
 def addOverlaps(alignmentsInGenomeOrder):
+    logging.info("finding overlaps...")
     stash = []
     for alnB in alignmentsInGenomeOrder:
         newStash = []
@@ -299,6 +297,7 @@ def isAnySharedRearrangement(opts, alignments, overlapsBetweenTwoQueries):
     return False
 
 def linksBetweenQueries(opts, alignments, alignmentsPerQuery):
+    logging.info("linking...")
     for alignmentsOfOneQuery in alignmentsPerQuery:
         qryNumA = alignmentsOfOneQuery[0][0]
         overlaps = sorted(overlapsOfOneQuery(alignments, alignmentsOfOneQuery))
@@ -307,6 +306,7 @@ def linksBetweenQueries(opts, alignments, alignmentsPerQuery):
                 yield qryNumA, qryNumB
 
 def connectedClumps(opts, alignmentsPerQuery, adjacencyList):
+    logging.info("clumping...")
     for i in connectedComponents(adjacencyList):
         if len(i) >= opts.min_seqs:
             yield [alignmentsPerQuery[j] for j in i]
@@ -320,6 +320,9 @@ def fileNumsFromText(text):
     return []
 
 def rearrangedSequenceClumps(opts, args):
+    logLevel = logging.INFO if opts.verbose else logging.WARNING
+    logging.basicConfig(format="%(filename)s: %(message)s", level=logLevel)
+
     fileNumsToInclude = fileNumsFromText(opts.yes)
     fileNumsToExclude = fileNumsFromText(opts.no)
 
@@ -330,18 +333,15 @@ def rearrangedSequenceClumps(opts, args):
     fileNumsPerQuery = [i[2] for i in dataPerQuery]
     alignments = list(chain.from_iterable(alignmentsPerQuery))
 
-    log(opts, "sorting...")
+    logging.info("sorting...")
     alignmentsInGenomeOrder = sorted(alignments, key=itemgetter(3, 4))
-    log(opts, "finding overlaps...")
     addOverlaps(alignmentsInGenomeOrder)
 
-    log(opts, "linking...")
     adjacencyList = [[] for i in alignmentsPerQuery]
     for i, j in linksBetweenQueries(opts, alignments, alignmentsPerQuery):
         adjacencyList[i].append(j)
         adjacencyList[j].append(i)
 
-    log(opts, "clumping...")
     clumps = list(connectedClumps(opts, alignmentsPerQuery, adjacencyList))
     clumps.sort(key=clumpSortKey)
 
