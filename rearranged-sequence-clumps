@@ -315,7 +315,7 @@ def clumpSortKey(clump):
 
 def fileNumsFromText(text):
     if text:
-        return map(int, text.split(","))
+        return [int(i) for i in text.split(",")]
     return []
 
 def rearrangedSequenceClumps(opts, args):
