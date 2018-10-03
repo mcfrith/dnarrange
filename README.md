@@ -11,6 +11,10 @@ Finally, it draws one picture per clump of read-to-genome alignments.
 
 First, align your sequences as described
 [here](https://github.com/mcfrith/last-rna/blob/master/last-long-reads.md).
+
+* You can use `last-split` `-fMAF`, to reduce the file size, with no
+  effect on `rearranged-sequence-clumps`.
+
 Then, find clumps of rearranged sequences:
 
     rearranged-sequence-clumps myseq.maf > clumps.maf
@@ -26,9 +30,9 @@ You can find clumps from multiple files, for example:
 
     rearranged-sequence-clumps -n2,3 child.maf mother.maf father.maf > child-only.maf
 
-This will find clumps from all DNA reads in all files, and print
-clumps that have no reads from file number 2 (`mother.maf`) or file
-number 3 (`father.maf`).
+`-n2,3` tells it to exclude rearrangements in the 2nd and 3rd files:
+it will discard any child DNA read that shares a rearrangement with
+any mother or father read, then clump the remaining child reads.
 
 ## `rearranged-sequence-clumps` options
 
@@ -57,8 +61,8 @@ number 3 (`father.maf`).
 - `-y FILENUMS`, `--yes=FILENUMS`: require clumps to include the
   specified files.
 
-- `-n FILENUMS`, `--no=FILENUMS`: require clumps to exclude the
-  specified files.
+- `-n FILENUMS`, `--no=FILENUMS`: discard any DNA read that shares a
+  rearrangement with any read from the specified files.
 
 - `-v`, `--verbose`: show progress messages.
 

@@ -192,10 +192,25 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
                 yield newAlns, alignmentTexts, fileNum + 1
                 qryNum += 1
 
-def addOverlaps(alignmentsInGenomeOrder):
+def addNgOverlaps(okAlignmentsInGenomeOrder, ngAlignmentsInGenomeOrder):
+    logging.info("finding overlaps for exclusion...")
+    stash = []
+    ngPos = 0
+    for alnA in okAlignmentsInGenomeOrder:
+        refNameA, refBegA, refEndA = alnA[3:6]
+        while ngPos < len(ngAlignmentsInGenomeOrder):
+            alnB = ngAlignmentsInGenomeOrder[ngPos]
+            if (alnB[3], alnB[4]) >= (refNameA, refEndA):
+                break
+            stash.append(alnB)
+            ngPos += 1
+        stash = [i for i in stash if i[3] == refNameA and i[5] > refBegA]
+        alnA[7].extend(i[6] for i in stash)
+
+def addOverlaps(myAlignmentsInGenomeOrder):
     logging.info("finding overlaps...")
     stash = []
-    for alnB in alignmentsInGenomeOrder:
+    for alnB in myAlignmentsInGenomeOrder:
         newStash = []
         for alnA in stash:
             if alnA[3] == alnB[3] and alnA[5] > alnB[4]:
@@ -296,6 +311,13 @@ def isAnySharedRearrangement(opts, alignments, overlapsBetweenTwoQueries):
                         return True
     return False
 
+def isNoSharedRearrangement(opts, alignments, alignmentsOfOneOkQuery):
+    overlaps = sorted(overlapsOfOneQuery(alignments, alignmentsOfOneOkQuery))
+    for qryNumB, g in groupby(overlaps, itemgetter(0)):
+        if isAnySharedRearrangement(opts, alignments, g):
+            return False
+    return True
+
 def linksBetweenQueries(opts, alignments, alignmentsPerQuery):
     logging.info("linking...")
     for alignmentsOfOneQuery in alignmentsPerQuery:
@@ -319,6 +341,11 @@ def fileNumsFromText(text):
         return [int(i) for i in text.split(",")]
     return []
 
+def alignmentsInGenomeOrder(alignmentsPerQuery):
+    logging.info("sorting...")
+    alignments = chain.from_iterable(alignmentsPerQuery)
+    return sorted(alignments, key=itemgetter(3, 4))
+
 def rearrangedSequenceClumps(opts, args):
     logLevel = logging.INFO if opts.verbose else logging.WARNING
     logging.basicConfig(format="%(filename)s: %(message)s", level=logLevel)
@@ -333,12 +360,29 @@ def rearrangedSequenceClumps(opts, args):
     fileNumsPerQuery = [i[2] for i in dataPerQuery]
     alignments = list(chain.from_iterable(alignmentsPerQuery))
 
-    logging.info("sorting...")
-    alignmentsInGenomeOrder = sorted(alignments, key=itemgetter(3, 4))
-    addOverlaps(alignmentsInGenomeOrder)
+    alignmentsPerOkQuery = [i[0] for i in dataPerQuery
+                            if i[2] not in fileNumsToExclude]
+
+    alignmentsPerNgQuery = [i[0] for i in dataPerQuery
+                            if i[2] in fileNumsToExclude]
+
+    okAlignmentsInGenomeOrder = alignmentsInGenomeOrder(alignmentsPerOkQuery)
+    ngAlignmentsInGenomeOrder = alignmentsInGenomeOrder(alignmentsPerNgQuery)
+    addNgOverlaps(okAlignmentsInGenomeOrder, ngAlignmentsInGenomeOrder)
+
+    logging.info("excluding...")
+    alignmentsPerKeptQuery = [i for i in alignmentsPerOkQuery
+                              if isNoSharedRearrangement(opts, alignments, i)]
+
+    for i in okAlignmentsInGenomeOrder:
+        myList = i[7]
+        del myList[:]
+
+    myAlignmentsInGenomeOrder = alignmentsInGenomeOrder(alignmentsPerKeptQuery)
+    addOverlaps(myAlignmentsInGenomeOrder)
 
     adjacencyList = [[] for i in alignmentsPerQuery]
-    for i, j in linksBetweenQueries(opts, alignments, alignmentsPerQuery):
+    for i, j in linksBetweenQueries(opts, alignments, alignmentsPerKeptQuery):
         adjacencyList[i].append(j)
         adjacencyList[j].append(i)
 
@@ -352,8 +396,6 @@ def rearrangedSequenceClumps(opts, args):
     for clumpNum, clump in enumerate(clumps):
         fileNums = set(fileNumsPerQuery[i[0][0]] for i in clump)
         if any(i not in fileNums for i in fileNumsToInclude):
-            continue
-        if any(i in fileNums for i in fileNumsToExclude):
             continue
         wantedClumps += 1
         head = "# PART clump{0}-{1}".format(clumpNum + 1, len(clump))
@@ -394,8 +436,9 @@ if __name__ == "__main__":
                   'counted as "non-colinear" (default=%default)')
     op.add_option("-y", "--yes", metavar="LIST", default="",
                   help="require clumps to include the specified files")
-    op.add_option("-n", "--no", metavar="LIST", default="",
-                  help="require clumps to exclude the specified files")
+    op.add_option("-n", "--no", metavar="LIST", default="", help=
+                  "omit query sequences that share rearrangements with the "
+                  "specified files")
     op.add_option("-v", "--verbose", action="count",
                   help="show progress messages")
     opts, args = op.parse_args()
