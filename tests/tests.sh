@@ -30,5 +30,7 @@ PATH=..:$PATH
     try rearranged-sequence-clumps -tG -g11 -s1 mito.maf
 
     try rearranged-sequence-clumps -n2 -s3 alns.maf neg.maf
+
+    try rearranged-sequence-clumps -y2 -s3 alns.maf neg.maf
 } 2>&1 |
 diff -u $(basename $0 .sh).out -
