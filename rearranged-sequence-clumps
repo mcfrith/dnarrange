@@ -200,12 +200,19 @@ def addNgOverlaps(okAlignmentsInGenomeOrder, ngAlignmentsInGenomeOrder):
         refNameA, refBegA, refEndA = alnA[3:6]
         while ngPos < len(ngAlignmentsInGenomeOrder):
             alnB = ngAlignmentsInGenomeOrder[ngPos]
-            if (alnB[3], alnB[4]) >= (refNameA, refEndA):
+            if (alnB[3], alnB[4]) >= (refNameA, refBegA):
                 break
             stash.append(alnB)
             ngPos += 1
         stash = [i for i in stash if i[3] == refNameA and i[5] > refBegA]
         alnA[7].extend(i[6] for i in stash)
+        ngEnd = ngPos
+        while ngEnd < len(ngAlignmentsInGenomeOrder):
+            alnB = ngAlignmentsInGenomeOrder[ngEnd]
+            if alnB[3] > refNameA or alnB[4] >= refEndA:
+                break
+            alnA[7].append(alnB[6])
+            ngEnd += 1
 
 def addOverlaps(myAlignmentsInGenomeOrder):
     logging.info("finding overlaps...")
