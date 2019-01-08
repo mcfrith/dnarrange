@@ -61,6 +61,9 @@ any mother or father read, then clump the remaining child reads.
 - `-d BP`, `--max-diff=BP`: maximum query-length difference for shared
   rearrangement (default=1000).
 
+- `-c N`, --min-cov=N`: omit any query with any rearrangement shared
+  by < N other queries (default=1).
+
 - `-y FILENUMS`, `--yes=FILENUMS`: require clumps to include the
   specified files.
 

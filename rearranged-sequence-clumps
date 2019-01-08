@@ -358,6 +358,53 @@ def linksBetweenQueries(opts, alignments, alignmentsPerQuery):
             if isAnySharedRearrangement(opts, alignments, g):
                 yield qryNumA, qryNumB
 
+def isOverlap(alnA, alnB):
+    return alnA[3] == alnB[3] and alnA[4] < alnB[5] and alnA[5] > alnB[4]
+
+def prevAlignment(alignments, thisAlignment):
+    alnNum = thisAlignment[6]
+    if alnNum == 0: return None
+    a = alignments[alnNum - 1]
+    return a if a[0] == thisAlignment[0] else None
+
+def nextAlignment(alignments, thisAlignment):
+    alnNum = thisAlignment[6]
+    if alnNum == len(alignments) - 1: return None
+    a = alignments[alnNum + 1]
+    return a if a[0] == thisAlignment[0] else None
+
+def addJumpIfShared(alignments, alnA, alnB):
+    alnAX = prevAlignment(alignments, alnA)
+    isSameStrand = isSameQueryStrand(alnA, alnB)
+    if isSameStrand:
+        alnBX = prevAlignment(alignments, alnB)
+    else:
+        alnBX = nextAlignment(alignments, alnB)
+    if alnAX is None or alnBX is None:
+        return
+    if not isOverlap(alnAX, alnBX):
+        return
+    if isSameQueryStrand(alnAX, alnBX) != isSameStrand:
+        return
+    if isSharedRearrangement(opts, alnAX, alnA, alnBX, alnB):
+        alnA[7].append(alnB[0])
+
+def addSharedJumps(alignments, myAlignmentsInGenomeOrder):
+    logging.info("finding shared jumps...")
+    for alnA, alnB in overlappingAlignmentPairs(myAlignmentsInGenomeOrder):
+        if alnA[0] != alnB[0]:
+            addJumpIfShared(alignments, alnA, alnB)
+            addJumpIfShared(alignments, alnB, alnA)
+
+def isAllJumpsSupported(opts, alignmentsOfOneQuery):
+    for j, y in enumerate(alignmentsOfOneQuery):
+        if j:
+            x = alignmentsOfOneQuery[j - 1]
+            if isNonlinearPair(opts, x, y):
+                if len(set(y[7])) < opts.min_cov:
+                    return False
+    return True
+
 def connectedClumps(opts, alignmentsPerQuery, adjacencyList):
     logging.info("clumping...")
     for i in connectedComponents(adjacencyList):
@@ -376,6 +423,19 @@ def alignmentsInGenomeOrder(alignmentsPerQuery):
     logging.info("sorting...")
     alignments = chain.from_iterable(alignmentsPerQuery)
     return sorted(alignments, key=itemgetter(3, 4))
+
+def alignmentsOfCoveredQueries(opts, alignments, alignmentsPerQuery):
+    while True:
+        oldLen = len(alignmentsPerQuery)
+        logging.info("queries: " + str(oldLen))
+        myAlignmentsInGenomeOrder = alignmentsInGenomeOrder(alignmentsPerQuery)
+        addSharedJumps(alignments, myAlignmentsInGenomeOrder)
+        logging.info("excluding...")
+        alignmentsPerQuery = [i for i in alignmentsPerQuery
+                              if isAllJumpsSupported(opts, i)]
+        delOverlaps(myAlignmentsInGenomeOrder)
+        if len(alignmentsPerQuery) == oldLen:
+            return alignmentsPerQuery, myAlignmentsInGenomeOrder
 
 def rearrangedSequenceClumps(opts, args):
     logLevel = logging.INFO if opts.verbose else logging.WARNING
@@ -406,7 +466,9 @@ def rearrangedSequenceClumps(opts, args):
                               if isNoSharedRearrangement(opts, alignments, i)]
     delOverlaps(okAlignmentsInGenomeOrder)
 
-    myAlignmentsInGenomeOrder = alignmentsInGenomeOrder(alignmentsPerKeptQuery)
+    cov = alignmentsOfCoveredQueries(opts, alignments, alignmentsPerKeptQuery)
+    alignmentsPerKeptQuery, myAlignmentsInGenomeOrder = cov
+
     addOverlaps(myAlignmentsInGenomeOrder)
 
     adjacencyList = [[] for i in alignmentsPerQuery]
@@ -465,6 +527,9 @@ if __name__ == "__main__":
     op.add_option("-d", "--max-diff", type="float", default=1000, metavar="BP",
                   help="maximum query-length difference for "
                   "shared rearrangement (default=%default)")
+    op.add_option("-c", "--min-cov", type="int", default=1, metavar="N", help=
+                  "omit any query with any rearrangement shared by < N "
+                  "other queries (default=%default)")
     op.add_option("-y", "--yes", metavar="LIST", default="",
                   help="require clumps to include the specified files")
     op.add_option("-n", "--no", metavar="LIST", default="", help=

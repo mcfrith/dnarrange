@@ -15,7 +15,7 @@ PATH=..:$PATH
 
     try rearranged-sequence-clumps alns.maf
 
-    try rearranged-sequence-clumps -s4 alns.maf
+    try rearranged-sequence-clumps -s4 -c0 alns.maf
 
     try rearranged-sequence-clumps -tCG alns.maf
 
@@ -25,7 +25,7 @@ PATH=..:$PATH
 
     try rearranged-sequence-clumps -s1 mito.maf
 
-    try rearranged-sequence-clumps -n2 -s4 alns.maf mito.maf
+    try rearranged-sequence-clumps -n2 -s4 -c0 alns.maf mito.maf
 
     try rearranged-sequence-clumps -tG -g11 -s1 mito.maf
 
@@ -33,6 +33,6 @@ PATH=..:$PATH
 
     try rearranged-sequence-clumps -y2 -s3 alns.maf neg.maf
 
-    try rearranged-sequence-clumps -d200 -s3 -tC alns.maf
+    try rearranged-sequence-clumps -d200 -s3 -tC -c0 alns.maf
 } 2>&1 |
 diff -u $(basename $0 .sh).out -
