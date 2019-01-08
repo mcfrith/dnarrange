@@ -278,14 +278,15 @@ def isSharedRearrangement(opts, alnAX, alnAY, alnBX, alnBY):
     if alnAX[1] > alnAY[1]:
         alnAX, alnAY = alnAY, alnAX
         alnBX, alnBY = alnBY, alnBX
-    endAX = alnAX[5]
-    begAY = alnAY[4]
-    endBX = alnBX[5]
-    begBY = alnBY[4]
-    gapA = begAY - endAX
-    gapB = begBY - endBX
-    gapAtoB = begBY - endAX
-    gapBtoA = begAY - endBX
+    refAX = -alnAX[5]
+    refBX = -alnBX[5]
+    refAY = alnAY[4]
+    refBY = alnBY[4]
+
+    gapA = refAX + refAY
+    gapB = refBX + refBY
+    gapAtoB = refAX + refBY
+    gapBtoA = refBX + refAY
 
     if gapA < 0:  # type "N"
         if gapB + opts.min_rev > 0:
