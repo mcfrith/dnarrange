@@ -192,6 +192,17 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
                 yield newAlns, alignmentTexts, fileNum + 1
                 qryNum += 1
 
+def overlappingAlignmentPairs(myAlignmentsInGenomeOrder):
+    stash = []
+    for alnB in myAlignmentsInGenomeOrder:
+        newStash = []
+        for alnA in stash:
+            if alnA[3] == alnB[3] and alnA[5] > alnB[4]:
+                yield alnA, alnB
+                newStash.append(alnA)
+        stash = newStash
+        stash.append(alnB)
+
 def addNgOverlaps(okAlignmentsInGenomeOrder, ngAlignmentsInGenomeOrder):
     logging.info("finding overlaps for exclusion...")
     stash = []
@@ -216,18 +227,16 @@ def addNgOverlaps(okAlignmentsInGenomeOrder, ngAlignmentsInGenomeOrder):
 
 def addOverlaps(myAlignmentsInGenomeOrder):
     logging.info("finding overlaps...")
-    stash = []
-    for alnB in myAlignmentsInGenomeOrder:
-        newStash = []
-        for alnA in stash:
-            if alnA[3] == alnB[3] and alnA[5] > alnB[4]:
-                if alnA[0] < alnB[0]:
-                    alnA[7].append(alnB[6])
-                if alnB[0] < alnA[0]:
-                    alnB[7].append(alnA[6])
-                newStash.append(alnA)
-        stash = newStash
-        stash.append(alnB)
+    for alnA, alnB in overlappingAlignmentPairs(myAlignmentsInGenomeOrder):
+        if alnA[0] < alnB[0]:
+            alnA[7].append(alnB[6])
+        if alnB[0] < alnA[0]:
+            alnB[7].append(alnA[6])
+
+def delOverlaps(alignments):
+    for i in alignments:
+        myList = i[7]
+        del myList[:]
 
 def overlapsOfOneQuery(alignments, alignmentsOfOneQuery):
     for alnA in alignmentsOfOneQuery:
@@ -380,10 +389,7 @@ def rearrangedSequenceClumps(opts, args):
     logging.info("excluding...")
     alignmentsPerKeptQuery = [i for i in alignmentsPerOkQuery
                               if isNoSharedRearrangement(opts, alignments, i)]
-
-    for i in okAlignmentsInGenomeOrder:
-        myList = i[7]
-        del myList[:]
+    delOverlaps(okAlignmentsInGenomeOrder)
 
     myAlignmentsInGenomeOrder = alignmentsInGenomeOrder(alignmentsPerKeptQuery)
     addOverlaps(myAlignmentsInGenomeOrder)
