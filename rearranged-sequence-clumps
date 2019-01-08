@@ -271,8 +271,10 @@ def isNonlinearPair(opts, alnX, alnY):
 def isSharedRearrangement(opts, alnAX, alnAY, alnBX, alnBY):
     # alnAX of query sequence A overlaps alnBX of query sequence B
     # alnAY of query sequence A overlaps alnBY of query sequence B
+
     if alnAX[3] != alnAY[3] or not isSameQueryStrand(alnAX, alnAY):
         return True
+
     if alnAX[1] > alnAY[1]:
         alnAX, alnAY = alnAY, alnAX
         alnBX, alnBY = alnBY, alnBX
@@ -282,18 +284,21 @@ def isSharedRearrangement(opts, alnAX, alnAY, alnBX, alnBY):
     begBY = alnBY[4]
     gapA = begAY - endAX
     gapB = begBY - endBX
+    gapAtoB = begBY - endAX
+    gapBtoA = begAY - endBX
+
     if gapA < 0:  # type "N"
         if gapB + opts.min_rev > 0:
             return False
         if gapB * 2 > gapA or gapA * 2 > gapB:
             return False
-        return endBX > begAY and begBY < endAX
+        return gapAtoB < 0 and gapBtoA < 0
     else:  # type "G"
         if gapB < opts.min_gap or not isAdjacent(alnBX, alnBY):
             return False
         if gapB * 2 < gapA or gapA * 2 < gapB:
             return False
-        return endBX < begAY and begBY > endAX
+        return gapAtoB > 0 and gapBtoA > 0
 
 def isAnySharedRearrangement(opts, alignments, overlapsBetweenTwoQueries):
     # "A" refers to a query sequence
