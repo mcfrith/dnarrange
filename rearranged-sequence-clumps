@@ -268,20 +268,29 @@ def isNonlinearPair(opts, alnX, alnY):
             return True
     return False
 
+def alignmentEdges(alnA, alnB, isGetEnds):
+    if isGetEnds:
+        return -alnA[2], -alnA[5], -alnB[2], -alnB[5]
+    else:
+        return alnA[1], alnA[4], alnB[1], alnB[4]
+
 def isSharedRearrangement(opts, alnAX, alnAY, alnBX, alnBY):
     # alnAX of query sequence A overlaps alnBX of query sequence B
     # alnAY of query sequence A overlaps alnBY of query sequence B
+    # alnAX is upstream of alnAY in query sequence A
+
+    qryAX, refAX, qryBX, refBX = alignmentEdges(alnAX, alnBX, alnAX[1] >= 0)
+    qryAY, refAY, qryBY, refBY = alignmentEdges(alnAY, alnBY, alnAY[1] < 0)
+
+    qryDistanceA = qryAX + qryAY
+    qryDistanceB = qryBX + qryBY
+    begDiff = refAX - refBX
+    endDiff = refBY - refAY
+    if abs(qryDistanceB - qryDistanceA + begDiff - endDiff) > opts.max_diff:
+        return False
 
     if alnAX[3] != alnAY[3] or not isSameQueryStrand(alnAX, alnAY):
         return True
-
-    if alnAX[1] > alnAY[1]:
-        alnAX, alnAY = alnAY, alnAX
-        alnBX, alnBY = alnBY, alnBX
-    refAX = -alnAX[5]
-    refBX = -alnBX[5]
-    refAY = alnAY[4]
-    refBY = alnBY[4]
 
     gapA = refAX + refAY
     gapB = refBX + refBY
@@ -453,6 +462,9 @@ if __name__ == "__main__":
     op.add_option("-r", "--min-rev", type="float", default=1000, metavar="BP",
                   help='minimum reverse jump in the reference sequence '
                   'counted as "non-colinear" (default=%default)')
+    op.add_option("-d", "--max-diff", type="float", default=1000, metavar="BP",
+                  help="maximum query-length difference for "
+                  "shared rearrangement (default=%default)")
     op.add_option("-y", "--yes", metavar="LIST", default="",
                   help="require clumps to include the specified files")
     op.add_option("-n", "--no", metavar="LIST", default="", help=

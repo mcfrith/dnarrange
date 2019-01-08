@@ -58,6 +58,9 @@ any mother or father read, then clump the remaining child reads.
   this is to exclude small tandem duplications, which can be
   overwhelmingly numerous.  To include everything, use `-r1`.
 
+- `-d BP`, `--max-diff=BP`: maximum query-length difference for shared
+  rearrangement (default=1000).
+
 - `-y FILENUMS`, `--yes=FILENUMS`: require clumps to include the
   specified files.
 
