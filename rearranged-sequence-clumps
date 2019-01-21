@@ -429,11 +429,12 @@ def alignmentsOfCoveredQueries(opts, alignments, alignmentsPerQuery):
         oldLen = len(alignmentsPerQuery)
         logging.info("queries: " + str(oldLen))
         myAlignmentsInGenomeOrder = alignmentsInGenomeOrder(alignmentsPerQuery)
-        addSharedJumps(alignments, myAlignmentsInGenomeOrder)
-        logging.info("excluding...")
-        alignmentsPerQuery = [i for i in alignmentsPerQuery
-                              if isAllJumpsSupported(opts, i)]
-        delOverlaps(myAlignmentsInGenomeOrder)
+        if opts.min_cov:
+            addSharedJumps(alignments, myAlignmentsInGenomeOrder)
+            logging.info("excluding...")
+            alignmentsPerQuery = [i for i in alignmentsPerQuery
+                                  if isAllJumpsSupported(opts, i)]
+            delOverlaps(myAlignmentsInGenomeOrder)
         if len(alignmentsPerQuery) == oldLen:
             return alignmentsPerQuery, myAlignmentsInGenomeOrder
 
@@ -527,7 +528,7 @@ if __name__ == "__main__":
     op.add_option("-d", "--max-diff", type="float", default=1000, metavar="BP",
                   help="maximum query-length difference for "
                   "shared rearrangement (default=%default)")
-    op.add_option("-c", "--min-cov", type="int", default=1, metavar="N", help=
+    op.add_option("-c", "--min-cov", type="int", default=0, metavar="N", help=
                   "omit any query with any rearrangement shared by < N "
                   "other queries (default=%default)")
     op.add_option("-y", "--yes", metavar="LIST", default="",
