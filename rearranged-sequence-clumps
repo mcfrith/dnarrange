@@ -310,7 +310,7 @@ def isSharedRearrangement(opts, alnAX, alnAY, alnBX, alnBY):
             return False
         return gapAtoB > 0 and gapBtoA > 0
 
-def isAnySharedRearrangement(opts, alignments, overlapsBetweenTwoQueries):
+def sharedRearrangement(opts, alignments, overlapsBetweenTwoQueries):
     # "A" refers to a query sequence
     # "B" refers to a different query sequence
     groups = groupby(overlapsBetweenTwoQueries, itemgetter(1))
@@ -339,13 +339,13 @@ def isAnySharedRearrangement(opts, alignments, overlapsBetweenTwoQueries):
                     if isSameOrder != isSameStrand:
                         continue
                     if isSharedRearrangement(opts, alnAX, alnAY, alnBX, alnBY):
-                        return True
-    return False
+                        return "-+"[isSameStrand]
+    return None
 
 def isNoSharedRearrangement(opts, alignments, alignmentsOfOneOkQuery):
     overlaps = sorted(overlapsOfOneQuery(alignments, alignmentsOfOneOkQuery))
     for qryNumB, g in groupby(overlaps, itemgetter(0)):
-        if isAnySharedRearrangement(opts, alignments, g):
+        if sharedRearrangement(opts, alignments, g):
             return False
     return True
 
@@ -355,7 +355,7 @@ def linksBetweenQueries(opts, alignments, alignmentsPerQuery):
         qryNumA = alignmentsOfOneQuery[0][0]
         overlaps = sorted(overlapsOfOneQuery(alignments, alignmentsOfOneQuery))
         for qryNumB, g in groupby(overlaps, itemgetter(0)):
-            if isAnySharedRearrangement(opts, alignments, g):
+            if sharedRearrangement(opts, alignments, g):
                 yield qryNumA, qryNumB
 
 def isOverlap(alnA, alnB):
@@ -406,13 +406,16 @@ def isAllJumpsSupported(opts, alignmentsOfOneQuery):
     return True
 
 def connectedClumps(opts, alignmentsPerQuery, adjacencyList):
-    logging.info("clumping...")
     for i in connectedComponents(adjacencyList):
         if len(i) >= opts.min_seqs:
             yield [alignmentsPerQuery[j] for j in i]
 
+def querySortKey(alignmentsOfOneQuery):
+    return min(a[3:6] for a in alignmentsOfOneQuery)
+
 def clumpSortKey(clump):
-    return -len(clump), min(min(a[3:6] for a in q) for q in clump)
+    k = min(querySortKey(q) for q in clump)
+    return -len(clump), k
 
 def fileNumsFromText(text):
     if text:
@@ -473,10 +476,12 @@ def rearrangedSequenceClumps(opts, args):
     addOverlaps(myAlignmentsInGenomeOrder)
 
     adjacencyList = [[] for i in alignmentsPerQuery]
-    for i, j in linksBetweenQueries(opts, alignments, alignmentsPerKeptQuery):
-        adjacencyList[i].append(j)
-        adjacencyList[j].append(i)
+    links = linksBetweenQueries(opts, alignments, alignmentsPerKeptQuery)
+    for qryNumA, qryNumB in links:
+        adjacencyList[qryNumA].append(qryNumB)
+        adjacencyList[qryNumB].append(qryNumA)
 
+    logging.info("clumping...")
     clumps = list(connectedClumps(opts, alignmentsPerQuery, adjacencyList))
     clumps.sort(key=clumpSortKey)
 
