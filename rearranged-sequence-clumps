@@ -3,6 +3,7 @@
 
 from __future__ import print_function
 
+import functools
 import gzip
 import logging
 import math
@@ -406,16 +407,11 @@ def isAllJumpsSupported(opts, alignmentsOfOneQuery):
                     return False
     return True
 
-def connectedClumps(opts, alignmentsPerQuery, adjacencyList):
-    for i in connectedComponents(adjacencyList):
-        if len(i) >= opts.min_seqs:
-            yield [alignmentsPerQuery[j] for j, isFlipped in i]
-
 def querySortKey(alignmentsOfOneQuery):
     return min(a[3:6] for a in alignmentsOfOneQuery)
 
-def clumpSortKey(clump):
-    k = min(querySortKey(q) for q in clump)
+def clumpSortKey(alignmentsPerQuery, clump):
+    k = min(querySortKey(alignmentsPerQuery[i]) for i, isFlipped in clump)
     return -len(clump), k
 
 def fileNumsFromText(text):
@@ -483,15 +479,16 @@ def rearrangedSequenceClumps(opts, args):
         adjacencyList[qryNumB].append((qryNumA, isOpposite))
 
     logging.info("clumping...")
-    clumps = list(connectedClumps(opts, alignmentsPerQuery, adjacencyList))
-    clumps.sort(key=clumpSortKey)
+    allClumps = connectedComponents(adjacencyList)
+    clumps = [i for i in allClumps if len(i) >= opts.min_seqs]
+    clumps.sort(key=functools.partial(clumpSortKey, alignmentsPerQuery))
 
     print("#", os.path.basename(sys.argv[0]), *sys.argv[1:])
     print()
 
     wantedClumps = 0
     for clumpNum, clump in enumerate(clumps):
-        fileNums = set(fileNumsPerQuery[i[0][0]] for i in clump)
+        fileNums = set(fileNumsPerQuery[qryNum] for qryNum, isFlipped in clump)
         if any(i not in fileNums for i in fileNumsToInclude):
             continue
         wantedClumps += 1
@@ -500,8 +497,7 @@ def rearrangedSequenceClumps(opts, args):
             head += "-{0}".format("_".join(map(str, sorted(fileNums))))
         print(head)
         print()
-        for i in clump:
-            qryNum = i[0][0]
+        for qryNum, isFlipped in clump:
             for t in alignmentTextsPerQuery[qryNum]:
                 for line in t:
                     print(line, end="")
