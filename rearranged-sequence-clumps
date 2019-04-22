@@ -21,14 +21,14 @@ def myOpen(fileName):  # faster than fileinput
     return open(fileName)
 
 def connectedComponent(adjacencyList, isNew, i):
-    stack = [i]
+    stack = [(i, False)]
     while stack:
-        j = stack.pop()
+        j, isFlipped = stack.pop()
         if isNew[j]:
-            yield j
+            yield j, isFlipped
             isNew[j] = False
-            for k in adjacencyList[j]:
-                stack.append(k)
+            for k, isOpposite in adjacencyList[j]:
+                stack.append((k, isOpposite != isFlipped))
 
 def connectedComponents(adjacencyList):
     isNew = [True for i in adjacencyList]
@@ -355,8 +355,9 @@ def linksBetweenQueries(opts, alignments, alignmentsPerQuery):
         qryNumA = alignmentsOfOneQuery[0][0]
         overlaps = sorted(overlapsOfOneQuery(alignments, alignmentsOfOneQuery))
         for qryNumB, g in groupby(overlaps, itemgetter(0)):
-            if sharedRearrangement(opts, alignments, g):
-                yield qryNumA, qryNumB
+            strand = sharedRearrangement(opts, alignments, g)
+            if strand:
+                yield qryNumA, qryNumB, strand == "-"
 
 def isOverlap(alnA, alnB):
     return alnA[3] == alnB[3] and alnA[4] < alnB[5] and alnA[5] > alnB[4]
@@ -408,7 +409,7 @@ def isAllJumpsSupported(opts, alignmentsOfOneQuery):
 def connectedClumps(opts, alignmentsPerQuery, adjacencyList):
     for i in connectedComponents(adjacencyList):
         if len(i) >= opts.min_seqs:
-            yield [alignmentsPerQuery[j] for j in i]
+            yield [alignmentsPerQuery[j] for j, isFlipped in i]
 
 def querySortKey(alignmentsOfOneQuery):
     return min(a[3:6] for a in alignmentsOfOneQuery)
@@ -477,9 +478,9 @@ def rearrangedSequenceClumps(opts, args):
 
     adjacencyList = [[] for i in alignmentsPerQuery]
     links = linksBetweenQueries(opts, alignments, alignmentsPerKeptQuery)
-    for qryNumA, qryNumB in links:
-        adjacencyList[qryNumA].append(qryNumB)
-        adjacencyList[qryNumB].append(qryNumA)
+    for qryNumA, qryNumB, isOpposite in links:
+        adjacencyList[qryNumA].append((qryNumB, isOpposite))
+        adjacencyList[qryNumB].append((qryNumA, isOpposite))
 
     logging.info("clumping...")
     clumps = list(connectedClumps(opts, alignmentsPerQuery, adjacencyList))
