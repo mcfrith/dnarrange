@@ -1,28 +1,29 @@
 # rearranged-sequence-clumps
 
-This is a crude method to find rearrangements in DNA reads relative to
-a genome sequence.
-
-It does not really find individual rearrangements.  It finds
-rearranged reads, and clumps reads that seem to share a rearrangement.
-Finally, it draws one picture per clump of read-to-genome alignments.
+This is a method to find rearrangements in "long" DNA reads relative
+to a genome sequence.
 
 ## Usage
 
-First, align your sequences as described
+First, align the reads to the genome as described
 [here](https://github.com/mcfrith/last-rna/blob/master/last-long-reads.md).
 
 * You can use `last-split` `-fMAF`, to reduce the file size, with no
   effect on `rearranged-sequence-clumps`.
 
-Then, find clumps of rearranged sequences:
+Then, find rearranged reads, and clump reads that seem to share a
+rearrangement:
 
     rearranged-sequence-clumps myseq.maf > clumps.maf
 
-This also works with `myseq.maf.gz`.  Finally, put pictures in a new
-directory `clump-pics`:
+This also works with `myseq.maf.gz`.  Finally, draw one picture per
+clump of read-to-genome alignments, in a new directory `clump-pics`:
 
     last-multiplot clumps.maf clump-pics
+
+`rearranged-sequence-clumps` tries to flip the reads' strands so all
+the reads in a clump are on the same strand.  A `-` at the end of a
+read name indicates that it's flipped, `+` unflipped.
 
 ## Multiple input files
 

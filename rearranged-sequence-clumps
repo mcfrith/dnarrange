@@ -9,6 +9,7 @@ import logging
 import math
 import optparse
 import os
+import re
 import signal
 import sys
 from itertools import chain, groupby
@@ -438,6 +439,33 @@ def alignmentsOfCoveredQueries(opts, alignments, alignmentsPerQuery):
         if len(alignmentsPerQuery) == oldLen:
             return alignmentsPerQuery, myAlignmentsInGenomeOrder
 
+def printMaf(lines, isFlipped):
+    lines = [re.split("(\s+)", i, 5) for i in lines]
+    sLines = [i for i in lines if i[0] == "s"]
+    qryLine = sLines[-1]
+    qryName = qryLine[2]
+    qryNameEnd = qryName[-1]
+    isAddChar = qryNameEnd not in "+-"
+    qryBase = qryName if isAddChar else qryName[:-1]
+    newQryName = qryBase + "-+"[isFlipped == (qryNameEnd == "-")]
+    if isFlipped:
+        strand = qryLine[8]
+        qryLine[8] = "-+"[strand == "-"]
+    sLineCount = 0
+    for line in lines:
+        if line[0] in "sq":
+            if line[0] == "s":
+                sLineCount += 1
+            if sLineCount == len(sLines) and line[2] == qryName:
+                line[2] = newQryName
+            elif isAddChar:
+                line[2] += " "
+        elif line[0] == "p":
+            if isAddChar:
+                line[0] += " "
+        print("".join(line), end="")
+    print()
+
 def rearrangedSequenceClumps(opts, args):
     logLevel = logging.INFO if opts.verbose else logging.WARNING
     logging.basicConfig(format="%(filename)s: %(message)s", level=logLevel)
@@ -499,9 +527,7 @@ def rearrangedSequenceClumps(opts, args):
         print()
         for qryNum, isFlipped in clump:
             for t in alignmentTextsPerQuery[qryNum]:
-                for line in t:
-                    print(line, end="")
-                print()
+                printMaf(t, isFlipped)
             print()
 
     txt = "wrote {0} of {1} clumps\n".format(wantedClumps, len(clumps))
