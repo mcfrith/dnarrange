@@ -56,9 +56,7 @@ def findBigGap(text, start, minGap):
         j += 1
     return i, j
 
-def splitAtBigGaps(opts, refFields, qryFields):
-    refName, refBeg, refSeq = refFields
-    qryName, qryBeg, qrySeq = qryFields
+def splitAtBigGaps(opts, refBeg, qryBeg, refSeq, qrySeq):
     minGap = int(math.ceil(opts.min_gap))
     alnPos = 0
     while alnPos < len(qrySeq):
@@ -67,37 +65,36 @@ def splitAtBigGaps(opts, refFields, qryFields):
         refEnd = refBeg + dist - refSeq.count("-", alnPos, gapBeg)
         qryEnd = qryBeg + dist - qrySeq.count("-", alnPos, gapBeg)
         if dist:
-            yield qryName, qryBeg, qryEnd, refName, refBeg, refEnd
+            yield qryBeg, qryEnd, refBeg, refEnd
         refBeg = refEnd + (gapEnd - gapBeg)
         qryBeg = qryEnd
         alnPos = gapEnd
 
 def alignmentsFromLines(opts, lines):
     mafLines = []
-    refFields = qryFields = None
+    refSeq = qrySeq = None
     mismap = 0.0
     for line in lines:
         if line.isspace():
-            if qryFields and mismap <= opts.max_mismap:
+            if qrySeq and mismap <= opts.max_mismap:
                 yield out
             mafLines = []
-            refFields = qryFields = None
+            refSeq = qrySeq = None
             mismap = 0.0
         elif line[0] != "#":
             mafLines.append(line)
             if line[0] == "s":
-                if refFields:
-                    qryFields = fieldsFromMaf(line)
-                    alns = splitAtBigGaps(opts, refFields, qryFields)
-                    qryName = qryFields[0]
-                    out = qryName, alns, mafLines
+                if refSeq:
+                    qryName, qryBeg, qrySeq = fieldsFromMaf(line)
+                    alns = splitAtBigGaps(opts, refBeg, qryBeg, refSeq, qrySeq)
+                    out = qryName, refName, alns, mafLines
                 else:
-                    refFields = fieldsFromMaf(line)
+                    refName, refBeg, refSeq = fieldsFromMaf(line)
             elif line[0] == "a":
                 for i in line.split():
                     if i.startswith("mismap="):
                         mismap = float(i[7:])
-    if qryFields and mismap <= opts.max_mismap:
+    if qrySeq and mismap <= opts.max_mismap:
         yield out
 
 def isCircularChromosome(name):
@@ -174,8 +171,8 @@ def newAlnFromOldAln(oldAln, qryNum, alnNum):
     return qryNum, qryBeg, qryEnd, refName, refBeg, refEnd, alnNum, []
 
 def qryFwdAlns(alignmentGroup):
-    for key, alns, junk in alignmentGroup:
-        for qryName, qryBeg, qryEnd, refName, refBeg, refEnd in alns:
+    for qryName, refName, alns, junk in alignmentGroup:
+        for qryBeg, qryEnd, refBeg, refEnd in alns:
             if qryBeg >= 0:
                 yield qryName, qryBeg, qryEnd, refName, refBeg, refEnd
             else:  # use forward strand of query:
@@ -195,7 +192,7 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
                 for i in alignmentsOfOneQuery:
                     newAlns.append(newAlnFromOldAln(i, qryNum, alnNum))
                     alnNum += 1
-                alignmentTexts = [i[2] for i in group]
+                alignmentTexts = [i[3] for i in group]
                 yield newAlns, alignmentTexts, fileNum + 1
                 qryNum += 1
 
