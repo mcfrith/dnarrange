@@ -72,7 +72,7 @@ def splitAtBigGaps(opts, refFields, qryFields):
         qryBeg = qryEnd
         alnPos = gapEnd
 
-def alignmentsFromMaf(opts, lines):
+def alignmentsFromLines(opts, lines):
     mafLines = []
     refFields = qryFields = None
     mismap = 0.0
@@ -88,7 +88,7 @@ def alignmentsFromMaf(opts, lines):
             if line[0] == "s":
                 if refFields:
                     qryFields = fieldsFromMaf(line)
-                    alns = list(splitAtBigGaps(opts, refFields, qryFields))
+                    alns = splitAtBigGaps(opts, refFields, qryFields)
                     qryName = qryFields[0]
                     out = qryName, alns, mafLines
                 else:
@@ -186,16 +186,16 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
     alnNum = 0
     for fileNum, fileName in enumerate(fileNames):
         logging.info("reading {0}...".format(fileName))
-        alignments = alignmentsFromMaf(opts, myOpen(fileName))
-        for k, v in groupby(alignments, itemgetter(0)):
-            v = list(v)
-            alignmentsOfOneQuery = sorted(qryFwdAlns(v))
+        alignments = alignmentsFromLines(opts, myOpen(fileName))
+        for qryName, group in groupby(alignments, itemgetter(0)):
+            group = list(group)
+            alignmentsOfOneQuery = sorted(qryFwdAlns(group))
             if isRearranged(opts, alignmentsOfOneQuery):
                 newAlns = []
                 for i in alignmentsOfOneQuery:
                     newAlns.append(newAlnFromOldAln(i, qryNum, alnNum))
                     alnNum += 1
-                alignmentTexts = [i[2] for i in v]
+                alignmentTexts = [i[2] for i in group]
                 yield newAlns, alignmentTexts, fileNum + 1
                 qryNum += 1
 
