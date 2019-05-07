@@ -59,13 +59,17 @@ def splitAtBigGaps(opts, refBeg, qryBeg, refSeq, qrySeq):
             gapEnd = gapBeg + minGap
             while gapEnd < alnLen and qrySeq[gapEnd] == "-":
                 gapEnd += 1
+            while gapEnd < alnLen and refSeq[gapEnd] == "-":
+                gapEnd += 1
+            while gapBeg > alnPos and refSeq[gapBeg - 1] == "-":
+                gapBeg -= 1
         dist = gapBeg - alnPos
         refEnd = refBeg + dist - refSeq.count("-", alnPos, gapBeg)
         qryEnd = qryBeg + dist - qrySeq.count("-", alnPos, gapBeg)
-        if dist:
-            yield qryBeg, qryEnd, refBeg, refEnd
-        refBeg = refEnd + (gapEnd - gapBeg)
-        qryBeg = qryEnd
+        yield qryBeg, qryEnd, refBeg, refEnd
+        gapLen = gapEnd - gapBeg
+        refBeg = refEnd + gapLen - refSeq.count("-", gapBeg, gapEnd)
+        qryBeg = qryEnd + gapLen - qrySeq.count("-", gapBeg, gapEnd)
         alnPos = gapEnd
 
 def splitTabAtBigGaps(opts, refBeg, qryBeg, gapText):
