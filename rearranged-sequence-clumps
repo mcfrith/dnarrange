@@ -54,10 +54,11 @@ def splitAtBigGaps(opts, refBeg, qryBeg, refSeq, qrySeq):
     while alnPos < alnLen:
         gapBeg = qrySeq.find(gapString, alnPos)
         if gapBeg < 0:
-            gapBeg = alnLen
-        gapEnd = gapBeg + minGap
-        while gapEnd < alnLen and qrySeq[gapEnd] == "-":
-            gapEnd += 1
+            gapBeg = gapEnd = alnLen
+        else:
+            gapEnd = gapBeg + minGap
+            while gapEnd < alnLen and qrySeq[gapEnd] == "-":
+                gapEnd += 1
         dist = gapBeg - alnPos
         refEnd = refBeg + dist - refSeq.count("-", alnPos, gapBeg)
         qryEnd = qryBeg + dist - qrySeq.count("-", alnPos, gapBeg)
@@ -79,18 +80,18 @@ def alignmentsFromLines(opts, lines):
             refSeq = qrySeq = None
             mismap = 0.0
         elif line[0] != "#":
-            mafLines.append(line)
-            if line[0] == "s":
-                if refSeq:
-                    qryName, qryBeg, qrySeq = fieldsFromMaf(line)
-                    alns = splitAtBigGaps(opts, refBeg, qryBeg, refSeq, qrySeq)
-                    out = qryName, refName, alns, mafLines
-                else:
-                    refName, refBeg, refSeq = fieldsFromMaf(line)
-            elif line[0] == "a":
+            if line[0] == "a":
                 for i in line.split():
                     if i.startswith("mismap="):
                         mismap = float(i[7:])
+            elif line[0] == "s":
+                if refSeq is None:
+                    refName, refBeg, refSeq = fieldsFromMaf(line)
+                else:
+                    qryName, qryBeg, qrySeq = fieldsFromMaf(line)
+                    alns = splitAtBigGaps(opts, refBeg, qryBeg, refSeq, qrySeq)
+                    out = qryName, refName, alns, mafLines
+            mafLines.append(line)
     if qrySeq and mismap <= opts.max_mismap:
         yield out
 
