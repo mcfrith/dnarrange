@@ -67,10 +67,7 @@ def splitAtBigGaps(opts, refFields, qryFields):
         refEnd = refBeg + dist - refSeq.count("-", alnPos, gapBeg)
         qryEnd = qryBeg + dist - qrySeq.count("-", alnPos, gapBeg)
         if dist:
-            if qryBeg >= 0:
-                yield qryName, qryBeg, qryEnd, refName, refBeg, refEnd
-            else:  # use forward strand of query:
-                yield qryName, -qryEnd, -qryBeg, refName, -refEnd, -refBeg
+            yield qryName, qryBeg, qryEnd, refName, refBeg, refEnd
         refBeg = refEnd + (gapEnd - gapBeg)
         qryBeg = qryEnd
         alnPos = gapEnd
@@ -176,6 +173,14 @@ def newAlnFromOldAln(oldAln, qryNum, alnNum):
         qryBeg, qryEnd = -qryEnd, -qryBeg
     return qryNum, qryBeg, qryEnd, refName, refBeg, refEnd, alnNum, []
 
+def qryFwdAlns(alignmentGroup):
+    for key, alns, junk in alignmentGroup:
+        for qryName, qryBeg, qryEnd, refName, refBeg, refEnd in alns:
+            if qryBeg >= 0:
+                yield qryName, qryBeg, qryEnd, refName, refBeg, refEnd
+            else:  # use forward strand of query:
+                yield qryName, -qryEnd, -qryBeg, refName, -refEnd, -refBeg
+
 def alignmentsPerRearrangedQuerySequence(opts, fileNames):
     qryNum = 0
     alnNum = 0
@@ -184,7 +189,7 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
         alignments = alignmentsFromMaf(opts, myOpen(fileName))
         for k, v in groupby(alignments, itemgetter(0)):
             v = list(v)
-            alignmentsOfOneQuery = sorted(chain.from_iterable(i[1] for i in v))
+            alignmentsOfOneQuery = sorted(qryFwdAlns(v))
             if isRearranged(opts, alignmentsOfOneQuery):
                 newAlns = []
                 for i in alignmentsOfOneQuery:
