@@ -46,21 +46,18 @@ def fieldsFromMaf(line):
         beg -= int(seqLen)  # use negative coordinates for reverse strands
     return seqName, beg, seq
 
-def findBigGap(text, start, minGap):
-    g = "-" * min(minGap, len(text) + 1)
-    i = text.find(g, start)
-    if i < 0:
-        i = len(text)
-    j = i + minGap
-    while j < len(text) and text[j] == "-":
-        j += 1
-    return i, j
-
 def splitAtBigGaps(opts, refBeg, qryBeg, refSeq, qrySeq):
     minGap = int(math.ceil(opts.min_gap))
+    alnLen = len(qrySeq)
+    gapString = "-" * min(minGap, alnLen + 1)
     alnPos = 0
-    while alnPos < len(qrySeq):
-        gapBeg, gapEnd = findBigGap(qrySeq, alnPos, minGap)
+    while alnPos < alnLen:
+        gapBeg = qrySeq.find(gapString, alnPos)
+        if gapBeg < 0:
+            gapBeg = alnLen
+        gapEnd = gapBeg + minGap
+        while gapEnd < alnLen and qrySeq[gapEnd] == "-":
+            gapEnd += 1
         dist = gapBeg - alnPos
         refEnd = refBeg + dist - refSeq.count("-", alnPos, gapBeg)
         qryEnd = qryBeg + dist - qrySeq.count("-", alnPos, gapBeg)
