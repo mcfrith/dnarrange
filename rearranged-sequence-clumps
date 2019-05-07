@@ -39,8 +39,8 @@ def connectedComponents(adjacencyList):
         if isNew[i]:
             yield sorted(connectedComponent(adjacencyList, isNew, i))
 
-def fieldsFromMaf(line):
-    _, seqName, start, span, strand, seqLen, seq = line.split()
+def dataFromMafFields(fields):
+    seqName, start, span, strand, seqLen, seq = fields[1:7]
     beg = int(start)
     if strand == "-":
         beg -= int(seqLen)  # use negative coordinates for reverse strands
@@ -68,6 +68,26 @@ def splitAtBigGaps(opts, refBeg, qryBeg, refSeq, qrySeq):
         qryBeg = qryEnd
         alnPos = gapEnd
 
+def splitTabAtBigGaps(opts, refBeg, qryBeg, gapText):
+    refEnd = refBeg
+    qryEnd = qryBeg
+    for i in gapText.split(","):
+        if ":" in i:
+            refInsert, qryInsert = i.split(":")
+            refInsert = int(refInsert)
+            qryInsert = int(qryInsert)
+            if refInsert >= opts.min_gap:
+                yield qryBeg, qryEnd, refBeg, refEnd
+                refBeg = refEnd + refInsert
+                qryBeg = qryEnd + qryInsert
+            refEnd += refInsert
+            qryEnd += qryInsert
+        else:
+            size = int(i)
+            refEnd += size
+            qryEnd += size
+    yield qryBeg, qryEnd, refBeg, refEnd
+
 def mismapFromFields(fields):
     for i in fields:
         if i.startswith("mismap="):
@@ -77,7 +97,15 @@ def mismapFromFields(fields):
 def alignmentsFromLines(opts, lines):
     refSeq = qrySeq = None
     for line in lines:
-        if line[0].isalpha():
+        if line[0].isdigit():  # LAST tabular format
+            fields = line.split()
+            mismap = mismapFromFields(fields[12:])
+            if mismap <= opts.max_mismap:
+                refName, refBeg, refJunk = dataFromMafFields(fields)
+                qryName, qryBeg, qryJunk = dataFromMafFields(fields[5:])
+                alns = splitTabAtBigGaps(opts, refBeg, qryBeg, qryJunk)
+                yield qryName, refName, alns, line
+        elif line[0].isalpha():  # MAF format
             if line[0] == "a":
                 if qrySeq:
                     yield qryName, refName, alns, mafLines
@@ -86,9 +114,9 @@ def alignmentsFromLines(opts, lines):
                 mismap = mismapFromFields(line.split())
             elif line[0] == "s" and mismap <= opts.max_mismap:
                 if refSeq is None:
-                    refName, refBeg, refSeq = fieldsFromMaf(line)
+                    refName, refBeg, refSeq = dataFromMafFields(line.split())
                 else:
-                    qryName, qryBeg, qrySeq = fieldsFromMaf(line)
+                    qryName, qryBeg, qrySeq = dataFromMafFields(line.split())
                     alns = splitAtBigGaps(opts, refBeg, qryBeg, refSeq, qrySeq)
             mafLines.append(line)
     if qrySeq:
