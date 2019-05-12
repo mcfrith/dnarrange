@@ -192,20 +192,20 @@ def isRearranged(opts, alignmentsOfOneQuery):
             "N" in opts.types and isNonlinear(alignmentsOfOneQuery, opts) or
             "G" in opts.types and isBigGap(alignmentsOfOneQuery, opts))
 
-def newAlnFromOldAln(oldAln, qryNum, alnNum):
-    qryName, qryBeg, qryEnd, refName, refBeg, refEnd = oldAln
-    if refBeg < 0:
-        refBeg, refEnd = -refEnd, -refBeg
-        qryBeg, qryEnd = -qryEnd, -qryBeg
-    return qryNum, qryBeg, qryEnd, refName, refBeg, refEnd, alnNum, []
-
 def qryFwdAlns(alignmentGroup):
     for qryName, refName, alns, junk in alignmentGroup:
         for qryBeg, qryEnd, refBeg, refEnd in alns:
-            if qryBeg >= 0:
-                yield qryName, qryBeg, qryEnd, refName, refBeg, refEnd
-            else:  # use forward strand of query:
-                yield qryName, -qryEnd, -qryBeg, refName, -refEnd, -refBeg
+            if qryBeg < 0:  # use forward strand of query:
+                qryBeg, qryEnd = -qryEnd, -qryBeg
+                refBeg, refEnd = -refEnd, -refBeg
+            yield qryName, qryBeg, qryEnd, refName, refBeg, refEnd
+
+def newAlnFromOldAln(oldAln, qryNum, alnNum):
+    qryName, qryBeg, qryEnd, refName, refBeg, refEnd = oldAln
+    if refBeg < 0:  # use forward strand of reference:
+        refBeg, refEnd = -refEnd, -refBeg
+        qryBeg, qryEnd = -qryEnd, -qryBeg
+    return qryNum, qryBeg, qryEnd, refName, refBeg, refEnd, alnNum, []
 
 def alignmentsPerRearrangedQuerySequence(opts, fileNames):
     qryNum = 0
