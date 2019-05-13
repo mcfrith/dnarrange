@@ -46,6 +46,12 @@ def dataFromMafFields(fields):
         beg -= int(seqLen)  # use negative coordinates for reverse strands
     return seqName, beg, seq
 
+def dataFromShrunkFields(fields):
+    seqName, start, span = fields[:3]
+    beg = int(start)
+    end = beg + int(span)
+    return seqName, beg, end
+
 def splitAtBigGaps(opts, refBeg, qryBeg, refSeq, qrySeq):
     minGap = int(math.ceil(opts.min_gap))
     alnLen = len(qrySeq)
@@ -101,14 +107,20 @@ def mismapFromFields(fields):
 def alignmentsFromLines(opts, lines):
     refSeq = qrySeq = None
     for line in lines:
-        if line[0].isdigit():  # LAST tabular format
+        if line[0].isdigit():
             fields = line.split()
-            mismap = mismapFromFields(fields[12:])
-            if mismap <= opts.max_mismap:
-                refName, refBeg, refJunk = dataFromMafFields(fields)
-                qryName, qryBeg, qryJunk = dataFromMafFields(fields[5:])
-                alns = splitTabAtBigGaps(opts, refBeg, qryBeg, qryJunk)
+            if len(fields) < 12:  # shrunk format
+                qryName, qryBeg, qryEnd = dataFromShrunkFields(fields)
+                refName, refBeg, refEnd = dataFromShrunkFields(fields[3:])
+                alns = [(qryBeg, qryEnd, refBeg, refEnd)]
                 yield qryName, refName, alns, fields
+            else:  # LAST tabular format
+                mismap = mismapFromFields(fields[12:])
+                if mismap <= opts.max_mismap:
+                    refName, refBeg, refJunk = dataFromMafFields(fields)
+                    qryName, qryBeg, qryJunk = dataFromMafFields(fields[5:])
+                    alns = splitTabAtBigGaps(opts, refBeg, qryBeg, qryJunk)
+                    yield qryName, refName, alns, fields
         elif line[0].isalpha():  # MAF format
             if line[0] == "a":
                 if qrySeq:
@@ -509,6 +521,15 @@ def printTab(fields, isFlipped):
     fields[9] = newStrand(fields[9], isFlipped)
     print(*fields, sep="\t")
 
+def printShrunk(alignment, querySerialNumber):
+    qryNum, qryBeg, qryEnd, refName, refBeg, refEnd = alignment[:6]
+    if qryBeg < 0:
+        qryBeg, qryEnd = -qryEnd, -qryBeg
+        refBeg, refEnd = -refEnd, -refBeg
+    qryLen = qryEnd - qryBeg
+    refLen = refEnd - refBeg
+    print(querySerialNumber, qryBeg, qryLen, refName, refBeg, refLen, sep="\t")
+
 def rearrangedSequenceClumps(opts, args):
     logLevel = logging.INFO if opts.verbose else logging.WARNING
     logging.basicConfig(format="%(filename)s: %(message)s", level=logLevel)
@@ -558,21 +579,33 @@ def rearrangedSequenceClumps(opts, args):
     print()
 
     wantedClumps = 0
+    querySerialNumber = 0
     for clumpNum, clump in enumerate(clumps):
         fileNums = set(fileNumsPerQuery[qryNum] for qryNum, isFlipped in clump)
         if any(i not in fileNums for i in fileNumsToInclude):
             continue
         wantedClumps += 1
-        head = "# PART clump{0}-{1}".format(clumpNum + 1, len(clump))
-        if len(fileNames) > 1:
-            head += "-{0}".format("_".join(map(str, sorted(fileNums))))
-        print(head)
-        print()
-        for qryNum, isFlipped in clump:
-            for t in alignmentTextsPerQuery[qryNum]:
-                printFunc = printMaf if len(t) < 12 else printTab
-                printFunc(t, isFlipped)
+        if opts.shrink:
+            for qryNum, isFlipped in clump:
+                querySerialNumber += 1
+                for a in alignmentsPerQuery[qryNum]:
+                    printShrunk(a, querySerialNumber)
             print()
+        else:
+            head = "# PART clump{0}-{1}".format(clumpNum + 1, len(clump))
+            if len(fileNames) > 1:
+                head += "-{0}".format("_".join(map(str, sorted(fileNums))))
+            print(head)
+            print()
+            for qryNum, isFlipped in clump:
+                for t in alignmentTextsPerQuery[qryNum]:
+                    if t[0][0] == "a":
+                        printMaf(t, isFlipped)
+                    elif len(t) > 11:
+                        printTab(t, isFlipped)
+                    else:  # shrunk format:
+                        print(*t, sep="\t")
+                print()
 
     txt = "wrote {0} of {1} clumps\n".format(wantedClumps, len(clumps))
     sys.stdout.flush()
@@ -608,6 +641,7 @@ if __name__ == "__main__":
     op.add_option("-n", "--no", metavar="LIST", default="", help=
                   "omit query sequences that share rearrangements with the "
                   "specified files")
+    op.add_option("--shrink", action="count", help="shrink the output")
     op.add_option("-v", "--verbose", action="count",
                   help="show progress messages")
     opts, args = op.parse_args()

@@ -23,6 +23,7 @@ Options:
   -y LIST, --yes=LIST   require clumps to include the specified files
   -n LIST, --no=LIST    omit query sequences that share rearrangements with
                         the specified files
+  --shrink              shrink the output
   -v, --verbose         show progress messages
 
 TEST rearranged-sequence-clumps -c1 alns.maf

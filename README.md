@@ -73,6 +73,9 @@ any mother or father read, then clump the remaining child reads.
 - `-n FILENUMS`, `--no=FILENUMS`: discard any DNA read that shares a
   rearrangement with any read from the specified files.
 
+- `--shrink`: write the output in a compact format.  This format can
+  be read by `rearranged-sequence-clumps`.
+
 - `-v`, `--verbose`: show progress messages.
 
 ## Re-running `rearranged-sequence-clumps`
