@@ -107,13 +107,14 @@ def alignmentsFromLines(opts, lines):
             fields = line.split()
             if len(fields) < 12:  # shrunk format
                 qryBeg = qryEnd + int(fields[0])
-                qryEnd = qryBeg + int(fields[1])
+                qryLen = int(fields[1])
+                qryEnd = qryBeg + qryLen
                 if len(fields) > 4:
                     refName = fields[4]
                     refBeg = int(fields[2])
                 else:
                     refBeg = refEnd + int(fields[2])
-                refEnd = refBeg + int(fields[3])
+                refEnd = refBeg + qryLen + int(fields[3])
                 alns = [(qryBeg, qryEnd, refBeg, refEnd)]
                 yield qryId, refName, alns, fields
             else:  # LAST tabular format
@@ -528,7 +529,7 @@ def printTab(fields, isFlipped):
 
 def printShrunk(alignmentsOfOneQuery):
     oldRefName = None
-    oldQryEnd = 0
+    qryInc = 0
     for i in alignmentsOfOneQuery:
         qryNum, qryBeg, qryEnd, refName, refBeg, refEnd = i[:6]
         if qryBeg < 0:
@@ -536,13 +537,14 @@ def printShrunk(alignmentsOfOneQuery):
             refBeg, refEnd = -refEnd, -refBeg
         qryLen = qryEnd - qryBeg
         refLen = refEnd - refBeg
-
-        qryInc = qryBeg - oldQryEnd
+        refLenInc = refLen - qryLen
+        if oldRefName:
+            qryInc = qryBeg - oldQryEnd
         if refName != oldRefName:
-            print(qryInc, qryLen, refBeg, refLen, refName, sep="\t")
+            print(qryInc, qryLen, refBeg, refLenInc, refName, sep="\t")
         else:
             refInc = refBeg - oldRefEnd
-            print(qryInc, qryLen, refInc, refLen, sep="\t")
+            print(qryInc, qryLen, refInc, refLenInc, sep="\t")
         oldRefName = refName
         oldQryEnd = qryEnd
         oldRefEnd = refEnd
