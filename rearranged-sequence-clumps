@@ -550,6 +550,16 @@ def printShrunk(alignmentsOfOneQuery):
         oldRefEnd = refEnd
     print()
 
+def printAlignments(opts, alnsPerKeptQuery, alignmentTextsPerQuery):
+    for i in alnsPerKeptQuery:
+        if opts.shrink:
+            printShrunk(i)
+        else:
+            qryNum = i[0][0]
+            for t in alignmentTextsPerQuery[qryNum]:
+                separator = "" if t[0][0] == "a" else "\t"
+                print(*t, sep=separator)
+
 def alignmentsPerKeptQuery(opts, dataPerQuery, alignments):
     fileNumsToExclude = fileNumsFromText(opts.no)
     okAlns = [i[0] for i in dataPerQuery if i[2] not in fileNumsToExclude]
@@ -582,6 +592,12 @@ def rearrangedSequenceClumps(opts, args):
     cov = alignmentsOfCoveredQueries(opts, alignments, alnsPerKeptQuery)
     alnsPerKeptQuery, myAlignmentsInGenomeOrder = cov
 
+    print("#", os.path.basename(sys.argv[0]), *sys.argv[1:])
+    print()
+
+    if opts.min_seqs < 1:
+        return printAlignments(opts, alnsPerKeptQuery, alignmentTextsPerQuery)
+
     addOverlaps(myAlignmentsInGenomeOrder)
 
     adjacencyList = [[] for i in alignmentsPerQuery]
@@ -594,9 +610,6 @@ def rearrangedSequenceClumps(opts, args):
     allClumps = connectedComponents(adjacencyList)
     clumps = [i for i in allClumps if len(i) >= opts.min_seqs]
     clumps.sort(key=functools.partial(clumpSortKey, alignmentsPerQuery))
-
-    print("#", os.path.basename(sys.argv[0]), *sys.argv[1:])
-    print()
 
     wantedClumps = 0
     for clumpNum, clump in enumerate(clumps):

@@ -11,8 +11,8 @@ First, align the reads to the genome as described
 * You can use `last-split` `-fMAF`, to reduce the file size, with no
   effect on `rearranged-sequence-clumps`.
 
-Then, find rearranged reads, and clump reads that seem to share a
-rearrangement:
+Then, find rearranged reads, and clump (i.e. group) reads that seem to
+share a rearrangement:
 
     rearranged-sequence-clumps myseq.maf > clumps.maf
 
@@ -44,7 +44,8 @@ any mother or father read, then clump the remaining child reads.
   probability > PROB (default=1e-6).
 
 - `-s N`, `--min-seqs=N`: minimum query sequences per clump
-  (default=2).
+  (default=2).  A value of `0` tells it to not bother finding
+  clumps/groups: it will simply find rearranged query sequences.
 
 - `-t LETTERS`, `--types=LETTERS`: rearrangement types:
   C=inter-chromosome, S=inter-strand, N=non-colinear, G=big gap

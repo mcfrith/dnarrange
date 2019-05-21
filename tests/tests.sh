@@ -39,6 +39,8 @@ PATH=..:$PATH
 
     try rearranged-sequence-clumps --shrink -s1 -r1 -g40 alns.maf
 
+    try rearranged-sequence-clumps --shrink -s0 -r1 -g40 alns.maf
+
     try rearranged-sequence-clumps -c1 alns.txt
 } 2>&1 |
 diff -u $(basename $0 .sh).out -
