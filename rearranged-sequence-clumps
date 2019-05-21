@@ -550,12 +550,25 @@ def printShrunk(alignmentsOfOneQuery):
         oldRefEnd = refEnd
     print()
 
+def alignmentsPerKeptQuery(opts, dataPerQuery, alignments):
+    fileNumsToExclude = fileNumsFromText(opts.no)
+    okAlns = [i[0] for i in dataPerQuery if i[2] not in fileNumsToExclude]
+    if not fileNumsToExclude:
+        return okAlns
+    ngAlns = [i[0] for i in dataPerQuery if i[2] in fileNumsToExclude]
+    okAlignmentsInGenomeOrder = alignmentsInGenomeOrder(okAlns)
+    ngAlignmentsInGenomeOrder = alignmentsInGenomeOrder(ngAlns)
+    addNgOverlaps(okAlignmentsInGenomeOrder, ngAlignmentsInGenomeOrder)
+    logging.info("excluding...")
+    out = [i for i in okAlns if isNoSharedRearrangement(opts, alignments, i)]
+    delOverlaps(okAlignmentsInGenomeOrder)
+    return out
+
 def rearrangedSequenceClumps(opts, args):
     logLevel = logging.INFO if opts.verbose else logging.WARNING
     logging.basicConfig(format="%(filename)s: %(message)s", level=logLevel)
 
     fileNumsToInclude = fileNumsFromText(opts.yes)
-    fileNumsToExclude = fileNumsFromText(opts.no)
 
     fileNames = args if args else ["-"]
     dataPerQuery = list(alignmentsPerRearrangedQuerySequence(opts, fileNames))
@@ -564,20 +577,7 @@ def rearrangedSequenceClumps(opts, args):
     fileNumsPerQuery = [i[2] for i in dataPerQuery]
     alignments = list(chain.from_iterable(alignmentsPerQuery))
 
-    alignmentsPerOkQuery = [i[0] for i in dataPerQuery
-                            if i[2] not in fileNumsToExclude]
-
-    alignmentsPerNgQuery = [i[0] for i in dataPerQuery
-                            if i[2] in fileNumsToExclude]
-
-    okAlignmentsInGenomeOrder = alignmentsInGenomeOrder(alignmentsPerOkQuery)
-    ngAlignmentsInGenomeOrder = alignmentsInGenomeOrder(alignmentsPerNgQuery)
-    addNgOverlaps(okAlignmentsInGenomeOrder, ngAlignmentsInGenomeOrder)
-
-    logging.info("excluding...")
-    alnsPerKeptQuery = [i for i in alignmentsPerOkQuery
-                        if isNoSharedRearrangement(opts, alignments, i)]
-    delOverlaps(okAlignmentsInGenomeOrder)
+    alnsPerKeptQuery = alignmentsPerKeptQuery(opts, dataPerQuery, alignments)
 
     cov = alignmentsOfCoveredQueries(opts, alignments, alnsPerKeptQuery)
     alnsPerKeptQuery, myAlignmentsInGenomeOrder = cov
