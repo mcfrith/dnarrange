@@ -575,17 +575,17 @@ def rearrangedSequenceClumps(opts, args):
     addNgOverlaps(okAlignmentsInGenomeOrder, ngAlignmentsInGenomeOrder)
 
     logging.info("excluding...")
-    alignmentsPerKeptQuery = [i for i in alignmentsPerOkQuery
-                              if isNoSharedRearrangement(opts, alignments, i)]
+    alnsPerKeptQuery = [i for i in alignmentsPerOkQuery
+                        if isNoSharedRearrangement(opts, alignments, i)]
     delOverlaps(okAlignmentsInGenomeOrder)
 
-    cov = alignmentsOfCoveredQueries(opts, alignments, alignmentsPerKeptQuery)
-    alignmentsPerKeptQuery, myAlignmentsInGenomeOrder = cov
+    cov = alignmentsOfCoveredQueries(opts, alignments, alnsPerKeptQuery)
+    alnsPerKeptQuery, myAlignmentsInGenomeOrder = cov
 
     addOverlaps(myAlignmentsInGenomeOrder)
 
     adjacencyList = [[] for i in alignmentsPerQuery]
-    links = linksBetweenQueries(opts, alignments, alignmentsPerKeptQuery)
+    links = linksBetweenQueries(opts, alignments, alnsPerKeptQuery)
     for qryNumA, qryNumB, isOpposite in links:
         adjacencyList[qryNumA].append((qryNumB, isOpposite))
         adjacencyList[qryNumB].append((qryNumA, isOpposite))
