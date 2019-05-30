@@ -37,7 +37,7 @@ def connectedComponents(adjacencyList):
     numOfNodes = len(adjacencyList)
     for i in range(numOfNodes):
         if isNew[i]:
-            yield sorted(connectedComponent(adjacencyList, isNew, i))
+            yield list(connectedComponent(adjacencyList, isNew, i))
 
 def dataFromMafFields(fields):
     seqName, start, span, strand, seqLen, seq = fields[1:7]
