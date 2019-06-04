@@ -22,8 +22,8 @@ def myOpen(fileName):  # faster than fileinput
         return gzip.open(fileName, "rt")  # xxx dubious for Python2
     return open(fileName)
 
-def connectedComponent(adjacencyList, isNew, i):
-    stack = [(i, False)]
+def connectedComponent(adjacencyList, isNew, i, isFlipped):
+    stack = [(i, isFlipped)]
     while stack:
         j, isFlipped = stack.pop()
         if isNew[j]:
@@ -33,11 +33,11 @@ def connectedComponent(adjacencyList, isNew, i):
                 stack.append((k, isOpposite != isFlipped))
 
 def connectedComponents(adjacencyList):
-    isNew = [True for i in adjacencyList]
     numOfNodes = len(adjacencyList)
+    isNew = [True for i in adjacencyList]
     for i in range(numOfNodes):
         if isNew[i]:
-            yield list(connectedComponent(adjacencyList, isNew, i))
+            yield list(connectedComponent(adjacencyList, isNew, i, False))
 
 def dataFromMafFields(fields):
     seqName, start, span, strand, seqLen, seq = fields[1:7]
