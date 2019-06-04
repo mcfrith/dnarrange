@@ -32,12 +32,12 @@ def connectedComponent(adjacencyList, isNew, i, isFlipped):
             for k, isOpposite in adjacencyList[j]:
                 stack.append((k, isOpposite != isFlipped))
 
-def connectedComponents(adjacencyList):
-    numOfNodes = len(adjacencyList)
+def connectedComponents(adjacencyList, nodeValues, isRev):
     isNew = [True for i in adjacencyList]
-    for i in range(numOfNodes):
-        if isNew[i]:
-            yield list(connectedComponent(adjacencyList, isNew, i, False))
+    s = sorted((len(x), nodeValues[i], i) for i, x in enumerate(adjacencyList))
+    for i, j, k in reversed(s):
+        if isNew[k]:
+            yield list(connectedComponent(adjacencyList, isNew, k, isRev[k]))
 
 def dataFromMafFields(fields):
     seqName, start, span, strand, seqLen, seq = fields[1:7]
@@ -611,7 +611,8 @@ def rearrangedSequenceClumps(opts, args):
         adjacencyList[qryNumB].append((qryNumA, isOpposite))
 
     logging.info("clumping...")
-    allClumps = connectedComponents(adjacencyList)
+    isRevStrand = [i[0][1] < 0 and i[-1][1] < 0 for i in alignmentsPerQuery]
+    allClumps = connectedComponents(adjacencyList, qryLengths, isRevStrand)
     clumps = [i for i in allClumps if len(i) >= opts.min_seqs]
     clumps.sort(key=functools.partial(clumpSortKey, alignmentsPerQuery))
 
