@@ -42,9 +42,10 @@ def connectedComponents(adjacencyList):
 def dataFromMafFields(fields):
     seqName, start, span, strand, seqLen, seq = fields[1:7]
     beg = int(start)
+    seqLen = int(seqLen)
     if strand == "-":
-        beg -= int(seqLen)  # use negative coordinates for reverse strands
-    return seqName, beg, seq
+        beg -= seqLen  # use negative coordinates for reverse strands
+    return seqName, seqLen, beg, seq
 
 def splitAtBigGaps(opts, refBeg, qryBeg, refSeq, qrySeq):
     minGap = int(math.ceil(opts.min_gap))
@@ -116,33 +117,34 @@ def alignmentsFromLines(opts, lines):
                     refBeg = refEnd + int(fields[2])
                 refEnd = refBeg + qryLen + int(fields[3])
                 alns = [(qryBeg, qryEnd, refBeg, refEnd)]
-                yield qryId, refName, alns, fields
+                yield qryId, 0, refName, alns, fields
             else:  # LAST tabular format
                 mismap = mismapFromFields(fields[12:])
                 if mismap <= opts.max_mismap:
-                    refName, refBeg, refJunk = dataFromMafFields(fields)
-                    qryName, qryBeg, qryJunk = dataFromMafFields(fields[5:])
-                    alns = splitTabAtBigGaps(opts, refBeg, qryBeg, qryJunk)
-                    yield qryName, refName, alns, fields
+                    refName, refLen, refBeg, rj = dataFromMafFields(fields)
+                    qryName, qryLen, qryBeg, qj = dataFromMafFields(fields[5:])
+                    alns = splitTabAtBigGaps(opts, refBeg, qryBeg, qj)
+                    yield qryName, qryLen, refName, alns, fields
         elif line[0].isalpha():  # MAF format
             if line[0] == "a":
                 if qrySeq:
-                    yield qryName, refName, alns, mafLines
+                    yield qryName, qryLen, refName, alns, mafLines
                 mafLines = []
                 refSeq = qrySeq = None
                 mismap = mismapFromFields(line.split())
             elif line[0] == "s" and mismap <= opts.max_mismap:
+                fields = line.split()
                 if refSeq is None:
-                    refName, refBeg, refSeq = dataFromMafFields(line.split())
+                    refName, refLen, refBeg, refSeq = dataFromMafFields(fields)
                 else:
-                    qryName, qryBeg, qrySeq = dataFromMafFields(line.split())
+                    qryName, qryLen, qryBeg, qrySeq = dataFromMafFields(fields)
                     alns = splitAtBigGaps(opts, refBeg, qryBeg, refSeq, qrySeq)
             mafLines.append(line)
         else:
             qryId += 1
             qryEnd = 0
     if qrySeq:
-        yield qryName, refName, alns, mafLines
+        yield qryName, qryLen, refName, alns, mafLines
 
 def isCircularChromosome(name):
     return name in ("chrM", "M")  # xxx ???
@@ -211,7 +213,7 @@ def isRearranged(opts, alignmentsOfOneQuery):
             "G" in opts.types and isBigGap(alignmentsOfOneQuery, opts))
 
 def qryFwdAlns(alignmentGroup):
-    for qryName, refName, alns, junk in alignmentGroup:
+    for qryName, qryLen, refName, alns, junk in alignmentGroup:
         for qryBeg, qryEnd, refBeg, refEnd in alns:
             if qryBeg < 0:  # use forward strand of query:
                 qryBeg, qryEnd = -qryEnd, -qryBeg
@@ -231,7 +233,8 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
     for fileNum, fileName in enumerate(fileNames):
         logging.info("reading {0}...".format(fileName))
         alignments = alignmentsFromLines(opts, myOpen(fileName))
-        for qryName, group in groupby(alignments, itemgetter(0)):
+        for key, group in groupby(alignments, itemgetter(0, 1)):
+            qryName, qryLen = key
             group = list(group)
             alignmentsOfOneQuery = sorted(qryFwdAlns(group))
             if isRearranged(opts, alignmentsOfOneQuery):
@@ -239,8 +242,8 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
                 for i in alignmentsOfOneQuery:
                     newAlns.append(newAlnFromOldAln(i, qryNum, alnNum))
                     alnNum += 1
-                alignmentTexts = [i[3] for i in group]
-                yield newAlns, alignmentTexts, fileNum + 1
+                alignmentTexts = [i[4] for i in group]
+                yield newAlns, alignmentTexts, fileNum + 1, qryLen
                 qryNum += 1
 
 def overlappingAlignmentPairs(myAlignmentsInGenomeOrder):
@@ -585,6 +588,7 @@ def rearrangedSequenceClumps(opts, args):
     alignmentsPerQuery = [i[0] for i in dataPerQuery]
     alignmentTextsPerQuery = [i[1] for i in dataPerQuery]
     fileNumsPerQuery = [i[2] for i in dataPerQuery]
+    qryLengths = [i[3] for i in dataPerQuery]
     alignments = list(chain.from_iterable(alignmentsPerQuery))
 
     alnsPerKeptQuery = alignmentsPerKeptQuery(opts, dataPerQuery, alignments)
