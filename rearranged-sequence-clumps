@@ -5,6 +5,7 @@ from __future__ import print_function
 
 import functools
 import gzip
+import heapq
 import logging
 import math
 import optparse
@@ -22,22 +23,26 @@ def myOpen(fileName):  # faster than fileinput
         return gzip.open(fileName, "rt")  # xxx dubious for Python2
     return open(fileName)
 
-def connectedComponent(adjacencyList, isNew, i, isFlipped):
-    stack = [(i, isFlipped)]
-    while stack:
-        j, isFlipped = stack.pop()
-        if isNew[j]:
-            yield j, isFlipped
-            isNew[j] = False
-            for k, isOpposite in adjacencyList[j]:
-                stack.append((k, isOpposite != isFlipped))
+def connectedComponent(adjacencyList, nodePriorities, isNew, i, isFlipped):
+    newItem = nodePriorities[i], i, isFlipped
+    heap = [newItem]
+    isNew[i] = False
+    while heap:
+        _, j, isFlipped = heapq.heappop(heap)
+        yield j, isFlipped
+        for k, isOpposite in adjacencyList[j]:
+            if isNew[k]:
+                newItem = nodePriorities[k], k, isOpposite != isFlipped
+                heapq.heappush(heap, newItem)
+                isNew[k] = False
 
-def connectedComponents(adjacencyList, nodeValues, isRev):
+def connectedComponents(adjacencyList, nodePriorities, isRev):
     isNew = [True for i in adjacencyList]
-    s = sorted((len(x), nodeValues[i], i) for i, x in enumerate(adjacencyList))
-    for i, j, k in reversed(s):
-        if isNew[k]:
-            yield list(connectedComponent(adjacencyList, isNew, k, isRev[k]))
+    s = sorted((x, i) for i, x in enumerate(nodePriorities))
+    for _, i in s:
+        if isNew[i]:
+            yield list(connectedComponent(adjacencyList, nodePriorities,
+                                          isNew, i, isRev[i]))
 
 def dataFromMafFields(fields):
     seqName, start, span, strand, seqLen, seq = fields[1:7]
@@ -245,6 +250,9 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
                 alignmentTexts = [i[4] for i in group]
                 yield newAlns, alignmentTexts, fileNum + 1, qryLen
                 qryNum += 1
+
+def alignedQueryLength(alignmentsOfOneQuery):
+    return sum(i[2] - i[1] for i in alignmentsOfOneQuery)
 
 def overlappingAlignmentPairs(myAlignmentsInGenomeOrder):
     stash = []
@@ -612,7 +620,9 @@ def rearrangedSequenceClumps(opts, args):
 
     logging.info("clumping...")
     isRevStrand = [i[0][1] < 0 and i[-1][1] < 0 for i in alignmentsPerQuery]
-    allClumps = connectedComponents(adjacencyList, qryLengths, isRevStrand)
+    qryPriorities = [(-len(i), -alignedQueryLength(j))
+                     for i, j in zip(adjacencyList, alignmentsPerQuery)]
+    allClumps = connectedComponents(adjacencyList, qryPriorities, isRevStrand)
     clumps = [i for i in allClumps if len(i) >= opts.min_seqs]
     clumps.sort(key=functools.partial(clumpSortKey, alignmentsPerQuery))
 
