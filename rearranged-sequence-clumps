@@ -239,7 +239,6 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
         logging.info("reading {0}...".format(fileName))
         alignments = alignmentsFromLines(opts, myOpen(fileName))
         for key, group in groupby(alignments, itemgetter(0, 1)):
-            qryName, qryLen = key
             group = list(group)
             alignmentsOfOneQuery = sorted(qryFwdAlns(group))
             if isRearranged(opts, alignmentsOfOneQuery):
@@ -248,7 +247,7 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
                     newAlns.append(newAlnFromOldAln(i, qryNum, alnNum))
                     alnNum += 1
                 alignmentTexts = [i[4] for i in group]
-                yield newAlns, alignmentTexts, fileNum + 1, qryLen
+                yield newAlns, alignmentTexts, fileNum + 1
                 qryNum += 1
 
 def alignedQueryLength(alignmentsOfOneQuery):
@@ -596,7 +595,6 @@ def rearrangedSequenceClumps(opts, args):
     alignmentsPerQuery = [i[0] for i in dataPerQuery]
     alignmentTextsPerQuery = [i[1] for i in dataPerQuery]
     fileNumsPerQuery = [i[2] for i in dataPerQuery]
-    qryLengths = [i[3] for i in dataPerQuery]
     alignments = list(chain.from_iterable(alignmentsPerQuery))
 
     alnsPerKeptQuery = alignmentsPerKeptQuery(opts, dataPerQuery, alignments)
