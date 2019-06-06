@@ -122,7 +122,7 @@ def alignmentsFromLines(opts, lines):
                     refBeg = refEnd + int(fields[2])
                 refEnd = refBeg + qryLen + int(fields[3])
                 alns = [(qryBeg, qryEnd, refBeg, refEnd)]
-                yield qryId, 0, refName, alns, fields
+                yield str(qryId), 0, refName, alns, fields
             else:  # LAST tabular format
                 mismap = mismapFromFields(fields[12:])
                 if mismap <= opts.max_mismap:
@@ -239,6 +239,7 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
         logging.info("reading {0}...".format(fileName))
         alignments = alignmentsFromLines(opts, myOpen(fileName))
         for key, group in groupby(alignments, itemgetter(0, 1)):
+            qryName, qryLen = key
             group = list(group)
             alignmentsOfOneQuery = sorted(qryFwdAlns(group))
             if isRearranged(opts, alignmentsOfOneQuery):
@@ -247,7 +248,7 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
                     newAlns.append(newAlnFromOldAln(i, qryNum, alnNum))
                     alnNum += 1
                 alignmentTexts = [i[4] for i in group]
-                yield newAlns, alignmentTexts, fileNum + 1
+                yield newAlns, alignmentTexts, fileNum + 1, qryName
                 qryNum += 1
 
 def alignedQueryLength(alignmentsOfOneQuery):
@@ -594,6 +595,23 @@ def wantedClumps(opts, fileNames, fileNumsPerQuery, clumps):
                 clumpName += "-" + "_".join(map(str, sorted(fileNums)))
             yield clumpName, clump
 
+def rangeText(alignment, isFlipped):
+    qryBeg, qryEnd, refName, refBeg, refEnd = alignment[1:6]
+    sep = "<"
+    if (qryBeg < 0) != isFlipped:
+        refBeg, refEnd = refEnd, refBeg
+        sep = ">"
+    return "{0}:{1}{2}{3}".format(refName, refBeg, sep, refEnd)
+
+def qrySummary(queryNames, alignmentsPerQuery, qryNum, isFlipped):
+    qryName = queryNames[qryNum]
+    newQryName, isAddChar = qryNameWithStrand(qryName, isFlipped)
+    alns = alignmentsPerQuery[qryNum]
+    if isFlipped:
+        alns = reversed(alns)
+    ranges = [rangeText(i, isFlipped) for i in alns]
+    return newQryName, ranges
+
 def rearrangedSequenceClumps(opts, args):
     logLevel = logging.INFO if opts.verbose else logging.WARNING
     logging.basicConfig(format="%(filename)s: %(message)s", level=logLevel)
@@ -603,6 +621,7 @@ def rearrangedSequenceClumps(opts, args):
     alignmentsPerQuery = [i[0] for i in dataPerQuery]
     alignmentTextsPerQuery = [i[1] for i in dataPerQuery]
     fileNumsPerQuery = [i[2] for i in dataPerQuery]
+    queryNames = [i[3] for i in dataPerQuery]
     alignments = list(chain.from_iterable(alignmentsPerQuery))
 
     alnsPerKeptQuery = alignmentsPerKeptQuery(opts, dataPerQuery, alignments)
@@ -632,6 +651,15 @@ def rearrangedSequenceClumps(opts, args):
     clumps = [i for i in allClumps if len(i) >= opts.min_seqs]
     clumps.sort(key=functools.partial(clumpSortKey, alignmentsPerQuery))
     goodClumps = list(wantedClumps(opts, fileNames, fileNumsPerQuery, clumps))
+
+    if not opts.shrink:
+        for clumpName, clump in goodClumps:
+            print("#", clumpName)
+            s = [qrySummary(queryNames, alignmentsPerQuery, *i) for i in clump]
+            width = max(len(newQryName) for newQryName, ranges in s)
+            for newQryName, ranges in s:
+                print("#", format(newQryName, str(width)), *ranges)
+            print()
 
     for clumpName, clump in goodClumps:
         if opts.shrink:
