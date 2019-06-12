@@ -13,6 +13,7 @@ import os
 import re
 import signal
 import sys
+import textwrap
 from itertools import chain, groupby
 from operator import itemgetter
 
@@ -658,7 +659,12 @@ def rearrangedSequenceClumps(opts, args):
             s = [qrySummary(queryNames, alignmentsPerQuery, *i) for i in clump]
             width = max(len(newQryName) for newQryName, ranges in s)
             for newQryName, ranges in s:
-                print("#", format(newQryName, str(width)), *ranges)
+                paddedName = format(newQryName, str(width))
+                para = " ".join([paddedName] + ranges)
+                print(textwrap.fill(para, 79, break_long_words=False,
+                                    break_on_hyphens=False,
+                                    initial_indent="# ",
+                                    subsequent_indent="#  "))
             print()
 
     for clumpName, clump in goodClumps:
