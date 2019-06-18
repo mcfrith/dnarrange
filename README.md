@@ -35,6 +35,10 @@ groups that include reads from all case files.
 group are on the same strand.  A `-` at the end of a read name
 indicates that it's flipped, `+` unflipped.
 
+Each group is given a name, such as `group5-28`.  The first number
+(`5`) is a serial number for each group, and the second number (`28`)
+is the number of reads in the group.
+
 ### Step 3: Draw pictures of the groups
 
 Draw a picture of each group, showing the read-to-genome alignments,

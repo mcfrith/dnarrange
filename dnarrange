@@ -584,7 +584,7 @@ def wantedClumps(minNumOfFiles, fileNumsPerQuery, clumps):
     for clumpNum, clump in enumerate(clumps):
         fileNums = set(fileNumsPerQuery[qryNum] for qryNum, isFlipped in clump)
         if len(fileNums) >= minNumOfFiles:
-            clumpName = "clump{0}-{1}".format(clumpNum + 1, len(clump))
+            clumpName = "group{0}-{1}".format(clumpNum + 1, len(clump))
             yield clumpName, clump
 
 def rangeText(alignment, isFlipped):
@@ -684,20 +684,20 @@ def rearrangedSequenceClumps(opts, args):
                         print(*t, sep="\t")
                 print()
 
-    txt = "wrote {0} of {1} clumps\n".format(len(goodClumps), len(clumps))
+    txt = "wrote {0} of {1} groups\n".format(len(goodClumps), len(clumps))
     sys.stdout.flush()
     sys.stderr.write(txt)
 
 if __name__ == "__main__":
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # avoid silly error message
     usage = "%prog [options] case-file(s) [: control-file(s)]"
-    descr = "Find clumps of rearranged query sequences in query-to-reference alignments."
+    descr = "Find rearranged query sequences in query-to-reference alignments."
     op = optparse.OptionParser(usage=usage, description=descr)
     op.add_option("-m", "--max-mismap", type="float", default=1e-6,
                   metavar="PROB", help="discard any alignment with "
                   "mismap probability > PROB (default=%default)")
     op.add_option("-s", "--min-seqs", type="int", default=2, metavar="N",
-                  help="minimum query sequences per clump (default=%default)")
+                  help="minimum query sequences per group (default=%default)")
     op.add_option("-t", "--types", metavar="LETTERS", default="CSNG", help=
                   "rearrangement types: C=inter-chromosome, S=inter-strand, "
                   "N=non-colinear, G=big gap (default=%default)")
