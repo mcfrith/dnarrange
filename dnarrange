@@ -604,7 +604,7 @@ def qrySummary(queryNames, alignmentsPerQuery, qryNum, isFlipped):
     ranges = [rangeText(i, isFlipped) for i in alns]
     return newQryName, ranges
 
-def rearrangedSequenceClumps(opts, args):
+def main(opts, args):
     logLevel = logging.INFO if opts.verbose else logging.WARNING
     logging.basicConfig(format="%(filename)s: %(message)s", level=logLevel)
 
@@ -643,7 +643,7 @@ def rearrangedSequenceClumps(opts, args):
         adjacencyList[qryNumA].append((qryNumB, isOpposite))
         adjacencyList[qryNumB].append((qryNumA, isOpposite))
 
-    logging.info("clumping...")
+    logging.info("grouping...")
     isRevStrand = [i[0][1] < 0 and i[-1][1] < 0 for i in alignmentsPerQuery]
     qryPriorities = [(-len(i), -alignedQueryLength(j))
                      for i, j in zip(adjacencyList, alignmentsPerQuery)]
@@ -717,4 +717,4 @@ if __name__ == "__main__":
     op.add_option("-v", "--verbose", action="count",
                   help="show progress messages")
     opts, args = op.parse_args()
-    rearrangedSequenceClumps(opts, args)
+    main(opts, args)

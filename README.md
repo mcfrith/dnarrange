@@ -46,6 +46,16 @@ in a new directory `group-pics`:
 
     last-multiplot groups.maf group-pics
 
+`last-multiplot` has the same
+[options](http://last.cbrc.jp/doc/last-dotplot.html) as
+`last-dotplot`.
+
+In fact, `last-multiplot` uses `last-dotplot`, so it requires the
+latter to be [installed](http://last.cbrc.jp/doc/last.html) (i.e. in
+your PATH).  This in turn requires the [Python Imaging
+Library](https://pillow.readthedocs.io/) to be installed (good luck
+with that).
+
 ## `dnarrange` options
 
 - `-h`, `--help`: show a help message, with default option values, and
@@ -83,18 +93,6 @@ in a new directory `group-pics`:
   be read by `dnarrange`.
 
 - `-v`, `--verbose`: show progress messages.
-
-## `last-multiplot` details
-
-`last-multiplot` has the same
-[options](http://last.cbrc.jp/doc/last-dotplot.html) as
-`last-dotplot`.
-
-In fact, `last-multiplot` uses `last-dotplot`, so it requires the
-latter to be [installed](http://last.cbrc.jp/doc/last.html) (i.e. in
-your PATH).  This in turn requires the [Python Imaging
-Library](https://pillow.readthedocs.io/) to be installed (good luck
-with that).
 
 ## Tips for viewing the pictures
 
