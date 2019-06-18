@@ -1,4 +1,4 @@
-# rearranged-sequence-clumps
+# dnarrange
 
 This is a method to find rearrangements in "long" DNA reads relative
 to a genome sequence.
@@ -19,21 +19,21 @@ recipe](https://github.com/mcfrith/last-rna/blob/master/last-long-reads.md).
 
 Like this:
 
-    rearranged-sequence-clumps case.maf : control1.maf control2.maf > groups.maf
+    dnarrange case.maf : control1.maf control2.maf > groups.maf
 
 The input files may be gzipped (`.gz`).
 
 It's OK to not use "control" files, or use them in a separate step:
 
-    rearranged-sequence-clumps case.maf > groups0.maf
-    rearranged-sequence-clumps groups0.maf : control1.maf control2.maf > groups.maf
+    dnarrange case.maf > groups0.maf
+    dnarrange groups0.maf : control1.maf control2.maf > groups.maf
 
-It's OK to use more than one "case" file: `rearranged-sequence-clumps`
-will only output groups that include reads from all case files.
+It's OK to use more than one "case" file: `dnarrange` will only output
+groups that include reads from all case files.
 
-`rearranged-sequence-clumps` tries to flip the reads' strands so all
-the reads in a clump are on the same strand.  A `-` at the end of a
-read name indicates that it's flipped, `+` unflipped.
+`dnarrange` tries to flip the reads' strands so all the reads in a
+group are on the same strand.  A `-` at the end of a read name
+indicates that it's flipped, `+` unflipped.
 
 ### Step 3: Draw pictures of the groups
 
@@ -42,7 +42,7 @@ in a new directory `group-pics`:
 
     last-multiplot groups.maf group-pics
 
-## `rearranged-sequence-clumps` options
+## `dnarrange` options
 
 - `-h`, `--help`: show a help message, with default option values, and
   exit.
@@ -50,9 +50,9 @@ in a new directory `group-pics`:
 - `-m PROB`, `--max-mismap=PROB`: discard any alignment with mismap
   probability > PROB (default=1e-6).
 
-- `-s N`, `--min-seqs=N`: minimum query sequences per clump
-  (default=2).  A value of `0` tells it to not bother finding
-  clumps/groups: it will simply find rearranged query sequences.
+- `-s N`, `--min-seqs=N`: minimum query sequences per group
+  (default=2).  A value of `0` tells it to not bother grouping: it
+  will simply find rearranged query sequences.
 
 - `-t LETTERS`, `--types=LETTERS`: rearrangement types:
   C=inter-chromosome, S=inter-strand, N=non-colinear, G=big gap
@@ -76,17 +76,9 @@ in a new directory `group-pics`:
   output.
 
 - `--shrink`: write the output in a compact format.  This format can
-  be read by `rearranged-sequence-clumps`.
+  be read by `dnarrange`.
 
 - `-v`, `--verbose`: show progress messages.
-
-## Re-running `rearranged-sequence-clumps`
-
-Suppose you run `rearranged-sequence-clumps` on a huge file.  Then you
-change your mind, and want to re-run it with different options.  You
-can save time by re-running it on the previous *output* (i.e. on
-`clumps.maf`).  This works only if you make the options more (or
-equally) restrictive: it cannot add missing sequences back in!
 
 ## `last-multiplot` details
 

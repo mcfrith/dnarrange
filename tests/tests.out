@@ -1,5 +1,5 @@
-TEST rearranged-sequence-clumps --help
-Usage: rearranged-sequence-clumps [options] case-file(s) [: control-file(s)]
+TEST dnarrange --help
+Usage: dnarrange [options] case-file(s) [: control-file(s)]
 
 Find clumps of rearranged query sequences in query-to-reference alignments.
 
@@ -23,8 +23,8 @@ Options:
   --shrink              shrink the output
   -v, --verbose         show progress messages
 
-TEST rearranged-sequence-clumps -c1 alns.maf
-# rearranged-sequence-clumps -c1 alns.maf
+TEST dnarrange -c1 alns.maf
+# dnarrange -c1 alns.maf
 
 # clump1-3
 # 22367894+ chr12:11090<18271 chr2:113592597>113580021 chr9:38962<42163
@@ -285,8 +285,8 @@ s c46c5068- 16 1149 + 5583 GAGAAAATTTCTTTGTAGGAAACACAACG-TGATGAGAATTATCTACAAGCTA
 
 wrote 6 of 6 clumps
 
-TEST rearranged-sequence-clumps -s4 alns.maf
-# rearranged-sequence-clumps -s4 alns.maf
+TEST dnarrange -s4 alns.maf
+# dnarrange -s4 alns.maf
 
 # clump1-4
 # 22367894+ chr12:11090<18271 chr2:113592597>113580021 chr9:38962<42163
@@ -351,8 +351,8 @@ s e1b74858+ 22625 4589 + 27224 TACCCAGTCAT-CT--TCAGAGATCTGGAGGACAATCCATGGATGCAGC
 
 wrote 1 of 1 clumps
 
-TEST rearranged-sequence-clumps -tCG -c1 alns.maf
-# rearranged-sequence-clumps -tCG -c1 alns.maf
+TEST dnarrange -tCG -c1 alns.maf
+# dnarrange -tCG -c1 alns.maf
 
 # clump1-3
 # 22367894+ chr12:11090<18271 chr2:113592597>113580021 chr9:38962<42163
@@ -513,8 +513,8 @@ s c46c5068- 16 1149 + 5583 GAGAAAATTTCTTTGTAGGAAACACAACG-TGATGAGAATTATCTACAAGCTA
 
 wrote 5 of 5 clumps
 
-TEST rearranged-sequence-clumps -tG -g1e2 alns.maf
-# rearranged-sequence-clumps -tG -g1e2 alns.maf
+TEST dnarrange -tG -g1e2 alns.maf
+# dnarrange -tG -g1e2 alns.maf
 
 # clump1-2
 # 49745bfb+ chr18:30469069<30480965 chr18:30481043<30491525
@@ -556,8 +556,8 @@ s 8617f730+ 7538 12075 + 19627 AGTTAAGAT-CTATGTAGTTTATTTGAGCACAACTGCAAGTCTTAGCCA
 
 wrote 1 of 1 clumps
 
-TEST rearranged-sequence-clumps -tN -r1e2 alns.maf
-# rearranged-sequence-clumps -tN -r1e2 alns.maf
+TEST dnarrange -tN -r1e2 alns.maf
+# dnarrange -tN -r1e2 alns.maf
 
 # clump1-3
 # e1b74858+ chr2:113583527>113574549 chr9:38696<53379 chr9:53189<57945
@@ -665,13 +665,13 @@ s 8617f730+ 7538 12075 + 19627 AGTTAAGAT-CTATGTAGTTTATTTGAGCACAACTGCAAGTCTTAGCCA
 
 wrote 3 of 3 clumps
 
-TEST rearranged-sequence-clumps -s1 mito.maf
-# rearranged-sequence-clumps -s1 mito.maf
+TEST dnarrange -s1 mito.maf
+# dnarrange -s1 mito.maf
 
 wrote 0 of 0 clumps
 
-TEST rearranged-sequence-clumps -s4 alns.maf : mito.maf
-# rearranged-sequence-clumps -s4 alns.maf : mito.maf
+TEST dnarrange -s4 alns.maf : mito.maf
+# dnarrange -s4 alns.maf : mito.maf
 
 # clump1-4
 # 22367894+ chr12:11090<18271 chr2:113592597>113580021 chr9:38962<42163
@@ -736,8 +736,8 @@ s e1b74858+ 22625 4589 + 27224 TACCCAGTCAT-CT--TCAGAGATCTGGAGGACAATCCATGGATGCAGC
 
 wrote 1 of 1 clumps
 
-TEST rearranged-sequence-clumps -tG -g11 -s1 mito.maf
-# rearranged-sequence-clumps -tG -g11 -s1 mito.maf
+TEST dnarrange -tG -g11 -s1 mito.maf
+# dnarrange -tG -g11 -s1 mito.maf
 
 # clump1-1
 # xxxxxxxxxxxxx+ chrM:10570<16569 chrM:7<7209 chrM:7220<10542
@@ -755,8 +755,8 @@ s xxxxxxxxxxxxx+ 5656  9654 + 15321 GGTCTATCACC-TATTAACCCGCTCA-GGG--CTCTC-ATGCAT
 
 wrote 1 of 1 clumps
 
-TEST rearranged-sequence-clumps -s3 -c1 alns.maf : neg.maf
-# rearranged-sequence-clumps -s3 -c1 alns.maf : neg.maf
+TEST dnarrange -s3 -c1 alns.maf : neg.maf
+# dnarrange -s3 -c1 alns.maf : neg.maf
 
 # clump1-3
 # 22367894+ chr12:11090<18271 chr2:113592597>113580021 chr9:38962<42163
@@ -807,8 +807,8 @@ s f7636412- 1738 7619 + 18011 TAACCCT--CTCAACCCTTCAACCTT---CCTAACCCTAACTCCAGAATC
 
 wrote 1 of 1 clumps
 
-TEST rearranged-sequence-clumps -s3 alns.maf neg.maf
-# rearranged-sequence-clumps -s3 alns.maf neg.maf
+TEST dnarrange -s3 alns.maf neg.maf
+# dnarrange -s3 alns.maf neg.maf
 
 # clump2-4
 # 49af0da4+ chr12:17844130<17860021 chr12:17769909>17745208
@@ -927,8 +927,8 @@ s 101f33d6- 5779 1414 + 57951 AATTT-TATAAGTGAATC-CTATT-TCATCAGCATATTACATTTTTCCCT
 
 wrote 1 of 2 clumps
 
-TEST rearranged-sequence-clumps -d200 -s3 -tC alns.maf
-# rearranged-sequence-clumps -d200 -s3 -tC alns.maf
+TEST dnarrange -d200 -s3 -tC alns.maf
+# dnarrange -d200 -s3 -tC alns.maf
 
 # clump1-3
 # 22367894+ chr12:11090<18271 chr2:113592597>113580021 chr9:38962<42163
@@ -979,8 +979,8 @@ s f7636412- 1738 7619 + 18011 TAACCCT--CTCAACCCTTCAACCTT---CCTAACCCTAACTCCAGAATC
 
 wrote 1 of 1 clumps
 
-TEST rearranged-sequence-clumps -g11 alns.tab
-# rearranged-sequence-clumps -g11 alns.tab
+TEST dnarrange -g11 alns.tab
+# dnarrange -g11 alns.tab
 
 # clump1-4
 # 22367894+ chr12:11090<11254 chr12:11265<13318 chr12:13329<13618
@@ -1147,8 +1147,8 @@ TEST rearranged-sequence-clumps -g11 alns.tab
 
 wrote 7 of 7 clumps
 
-TEST rearranged-sequence-clumps --shrink -s1 -r1 -g40 alns.maf
-# rearranged-sequence-clumps --shrink -s1 -r1 -g40 alns.maf
+TEST dnarrange --shrink -s1 -r1 -g40 alns.maf
+# dnarrange --shrink -s1 -r1 -g40 alns.maf
 
 0	8527	-113583527	451	chr2
 11	14058	38696	625	chr9
@@ -1332,8 +1332,8 @@ TEST rearranged-sequence-clumps --shrink -s1 -r1 -g40 alns.maf
 
 wrote 16 of 16 clumps
 
-TEST rearranged-sequence-clumps --shrink -s0 -r1 -g40 alns.maf
-# rearranged-sequence-clumps --shrink -s0 -r1 -g40 alns.maf
+TEST dnarrange --shrink -s0 -r1 -g40 alns.maf
+# dnarrange --shrink -s0 -r1 -g40 alns.maf
 
 0	5995	47210	161	chr9
 6	4891	-184	99
@@ -1500,8 +1500,8 @@ TEST rearranged-sequence-clumps --shrink -s0 -r1 -g40 alns.maf
 19	9786	-38	315
 
 
-TEST rearranged-sequence-clumps -c1 alns.txt
-# rearranged-sequence-clumps -c1 alns.txt
+TEST dnarrange -c1 alns.txt
+# dnarrange -c1 alns.txt
 
 # clump1-3
 # 4+ chr12:11090<18271 chr2:113592597>113587911 chr2:113587871>113580021

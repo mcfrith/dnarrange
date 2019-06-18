@@ -11,36 +11,36 @@ cd $(dirname $0)
 PATH=..:$PATH
 
 {
-    try rearranged-sequence-clumps --help
+    try dnarrange --help
 
-    try rearranged-sequence-clumps -c1 alns.maf
+    try dnarrange -c1 alns.maf
 
-    try rearranged-sequence-clumps -s4 alns.maf
+    try dnarrange -s4 alns.maf
 
-    try rearranged-sequence-clumps -tCG -c1 alns.maf
+    try dnarrange -tCG -c1 alns.maf
 
-    try rearranged-sequence-clumps -tG -g1e2 alns.maf
+    try dnarrange -tG -g1e2 alns.maf
 
-    try rearranged-sequence-clumps -tN -r1e2 alns.maf
+    try dnarrange -tN -r1e2 alns.maf
 
-    try rearranged-sequence-clumps -s1 mito.maf
+    try dnarrange -s1 mito.maf
 
-    try rearranged-sequence-clumps -s4 alns.maf : mito.maf
+    try dnarrange -s4 alns.maf : mito.maf
 
-    try rearranged-sequence-clumps -tG -g11 -s1 mito.maf
+    try dnarrange -tG -g11 -s1 mito.maf
 
-    try rearranged-sequence-clumps -s3 -c1 alns.maf : neg.maf
+    try dnarrange -s3 -c1 alns.maf : neg.maf
 
-    try rearranged-sequence-clumps -s3 alns.maf neg.maf
+    try dnarrange -s3 alns.maf neg.maf
 
-    try rearranged-sequence-clumps -d200 -s3 -tC alns.maf
+    try dnarrange -d200 -s3 -tC alns.maf
 
-    try rearranged-sequence-clumps -g11 alns.tab
+    try dnarrange -g11 alns.tab
 
-    try rearranged-sequence-clumps --shrink -s1 -r1 -g40 alns.maf
+    try dnarrange --shrink -s1 -r1 -g40 alns.maf
 
-    try rearranged-sequence-clumps --shrink -s0 -r1 -g40 alns.maf
+    try dnarrange --shrink -s0 -r1 -g40 alns.maf
 
-    try rearranged-sequence-clumps -c1 alns.txt
+    try dnarrange -c1 alns.txt
 } 2>&1 |
 diff -u $(basename $0 .sh).out -
