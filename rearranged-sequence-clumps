@@ -586,14 +586,12 @@ def alignmentsPerKeptQuery(opts, dataPerQuery, alignments):
     delOverlaps(okAlignmentsInGenomeOrder)
     return out
 
-def wantedClumps(opts, fileNames, fileNumsPerQuery, clumps):
+def wantedClumps(opts, fileNumsPerQuery, clumps):
     fileNumsToInclude = fileNumsFromText(opts.yes)
     for clumpNum, clump in enumerate(clumps):
         fileNums = set(fileNumsPerQuery[qryNum] for qryNum, isFlipped in clump)
         if all(i in fileNums for i in fileNumsToInclude):
             clumpName = "clump{0}-{1}".format(clumpNum + 1, len(clump))
-            if len(fileNames) > 1:
-                clumpName += "-" + "_".join(map(str, sorted(fileNums)))
             yield clumpName, clump
 
 def rangeText(alignment, isFlipped):
@@ -651,7 +649,7 @@ def rearrangedSequenceClumps(opts, args):
     allClumps = connectedComponents(adjacencyList, qryPriorities, isRevStrand)
     clumps = [i for i in allClumps if len(i) >= opts.min_seqs]
     clumps.sort(key=functools.partial(clumpSortKey, alignmentsPerQuery))
-    goodClumps = list(wantedClumps(opts, fileNames, fileNumsPerQuery, clumps))
+    goodClumps = list(wantedClumps(opts, fileNumsPerQuery, clumps))
 
     if not opts.shrink:
         for clumpName, clump in goodClumps:
