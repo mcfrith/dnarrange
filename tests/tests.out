@@ -1,5 +1,5 @@
 TEST rearranged-sequence-clumps --help
-Usage: rearranged-sequence-clumps [options] maf-or-tab-file(s)
+Usage: rearranged-sequence-clumps [options] case-file(s) [: control-file(s)]
 
 Find clumps of rearranged query sequences in query-to-reference alignments.
 
@@ -20,9 +20,6 @@ Options:
                         rearrangement (default=1000)
   -c N, --min-cov=N     omit any query with any rearrangement shared by < N
                         other queries (default=0)
-  -y LIST, --yes=LIST   require clumps to include the specified files
-  -n LIST, --no=LIST    omit query sequences that share rearrangements with
-                        the specified files
   --shrink              shrink the output
   -v, --verbose         show progress messages
 
@@ -673,8 +670,8 @@ TEST rearranged-sequence-clumps -s1 mito.maf
 
 wrote 0 of 0 clumps
 
-TEST rearranged-sequence-clumps -n2 -s4 alns.maf mito.maf
-# rearranged-sequence-clumps -n2 -s4 alns.maf mito.maf
+TEST rearranged-sequence-clumps -s4 alns.maf : mito.maf
+# rearranged-sequence-clumps -s4 alns.maf : mito.maf
 
 # clump1-4
 # 22367894+ chr12:11090<18271 chr2:113592597>113580021 chr9:38962<42163
@@ -758,8 +755,8 @@ s xxxxxxxxxxxxx+ 5656  9654 + 15321 GGTCTATCACC-TATTAACCCGCTCA-GGG--CTCTC-ATGCAT
 
 wrote 1 of 1 clumps
 
-TEST rearranged-sequence-clumps -n2 -s3 -c1 alns.maf neg.maf
-# rearranged-sequence-clumps -n2 -s3 -c1 alns.maf neg.maf
+TEST rearranged-sequence-clumps -s3 -c1 alns.maf : neg.maf
+# rearranged-sequence-clumps -s3 -c1 alns.maf : neg.maf
 
 # clump1-3
 # 22367894+ chr12:11090<18271 chr2:113592597>113580021 chr9:38962<42163
@@ -810,8 +807,8 @@ s f7636412- 1738 7619 + 18011 TAACCCT--CTCAACCCTTCAACCTT---CCTAACCCTAACTCCAGAATC
 
 wrote 1 of 1 clumps
 
-TEST rearranged-sequence-clumps -y2 -s3 alns.maf neg.maf
-# rearranged-sequence-clumps -y2 -s3 alns.maf neg.maf
+TEST rearranged-sequence-clumps -s3 alns.maf neg.maf
+# rearranged-sequence-clumps -s3 alns.maf neg.maf
 
 # clump2-4
 # 49af0da4+ chr12:17844130<17860021 chr12:17769909>17745208

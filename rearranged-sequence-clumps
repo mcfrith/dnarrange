@@ -476,11 +476,6 @@ def clumpSortKey(alignmentsPerQuery, clump):
     k = min(querySortKey(alignmentsPerQuery[i]) for i, isFlipped in clump)
     return -len(clump), k
 
-def fileNumsFromText(text):
-    if text:
-        return [int(i) for i in text.split(",")]
-    return []
-
 def alignmentsInGenomeOrder(alignmentsPerQuery):
     logging.info("sorting...")
     alignments = chain.from_iterable(alignmentsPerQuery)
@@ -572,12 +567,11 @@ def printAlignments(opts, alnsPerKeptQuery, alignmentTextsPerQuery):
                 separator = "" if t[0][0] == "a" else "\t"
                 print(*t, sep=separator)
 
-def alignmentsPerKeptQuery(opts, dataPerQuery, alignments):
-    fileNumsToExclude = fileNumsFromText(opts.no)
-    okAlns = [i[0] for i in dataPerQuery if i[2] not in fileNumsToExclude]
-    if not fileNumsToExclude:
+def alignmentsPerKeptQuery(numOfCaseFiles, dataPerQuery, alignments):
+    okAlns = [i[0] for i in dataPerQuery if i[2] <= numOfCaseFiles]
+    ngAlns = [i[0] for i in dataPerQuery if i[2] > numOfCaseFiles]
+    if not ngAlns:
         return okAlns
-    ngAlns = [i[0] for i in dataPerQuery if i[2] in fileNumsToExclude]
     okAlignmentsInGenomeOrder = alignmentsInGenomeOrder(okAlns)
     ngAlignmentsInGenomeOrder = alignmentsInGenomeOrder(ngAlns)
     addNgOverlaps(okAlignmentsInGenomeOrder, ngAlignmentsInGenomeOrder)
@@ -586,11 +580,10 @@ def alignmentsPerKeptQuery(opts, dataPerQuery, alignments):
     delOverlaps(okAlignmentsInGenomeOrder)
     return out
 
-def wantedClumps(opts, fileNumsPerQuery, clumps):
-    fileNumsToInclude = fileNumsFromText(opts.yes)
+def wantedClumps(minNumOfFiles, fileNumsPerQuery, clumps):
     for clumpNum, clump in enumerate(clumps):
         fileNums = set(fileNumsPerQuery[qryNum] for qryNum, isFlipped in clump)
-        if all(i in fileNums for i in fileNumsToInclude):
+        if len(fileNums) >= minNumOfFiles:
             clumpName = "clump{0}-{1}".format(clumpNum + 1, len(clump))
             yield clumpName, clump
 
@@ -615,7 +608,14 @@ def rearrangedSequenceClumps(opts, args):
     logLevel = logging.INFO if opts.verbose else logging.WARNING
     logging.basicConfig(format="%(filename)s: %(message)s", level=logLevel)
 
-    fileNames = args if args else ["-"]
+    if not args:
+        args.append("-")
+    if ":" not in args:
+        args.append(":")
+    colonPos = args.index(":")
+    colonEnd = colonPos + 1
+    fileNames = args[:colonPos] + args[colonEnd:]
+
     dataPerQuery = list(alignmentsPerRearrangedQuerySequence(opts, fileNames))
     alignmentsPerQuery = [i[0] for i in dataPerQuery]
     alignmentTextsPerQuery = [i[1] for i in dataPerQuery]
@@ -623,7 +623,8 @@ def rearrangedSequenceClumps(opts, args):
     queryNames = [i[3] for i in dataPerQuery]
     alignments = list(chain.from_iterable(alignmentsPerQuery))
 
-    alnsPerKeptQuery = alignmentsPerKeptQuery(opts, dataPerQuery, alignments)
+    alnsPerKeptQuery = alignmentsPerKeptQuery(colonPos,
+                                              dataPerQuery, alignments)
 
     cov = alignmentsOfCoveredQueries(opts, alignments, alnsPerKeptQuery)
     alnsPerKeptQuery, myAlignmentsInGenomeOrder = cov
@@ -649,7 +650,7 @@ def rearrangedSequenceClumps(opts, args):
     allClumps = connectedComponents(adjacencyList, qryPriorities, isRevStrand)
     clumps = [i for i in allClumps if len(i) >= opts.min_seqs]
     clumps.sort(key=functools.partial(clumpSortKey, alignmentsPerQuery))
-    goodClumps = list(wantedClumps(opts, fileNumsPerQuery, clumps))
+    goodClumps = list(wantedClumps(colonPos, fileNumsPerQuery, clumps))
 
     if not opts.shrink:
         for clumpName, clump in goodClumps:
@@ -689,7 +690,7 @@ def rearrangedSequenceClumps(opts, args):
 
 if __name__ == "__main__":
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # avoid silly error message
-    usage = "%prog [options] maf-or-tab-file(s)"
+    usage = "%prog [options] case-file(s) [: control-file(s)]"
     descr = "Find clumps of rearranged query sequences in query-to-reference alignments."
     op = optparse.OptionParser(usage=usage, description=descr)
     op.add_option("-m", "--max-mismap", type="float", default=1e-6,
@@ -712,11 +713,6 @@ if __name__ == "__main__":
     op.add_option("-c", "--min-cov", type="int", default=0, metavar="N", help=
                   "omit any query with any rearrangement shared by < N "
                   "other queries (default=%default)")
-    op.add_option("-y", "--yes", metavar="LIST", default="",
-                  help="require clumps to include the specified files")
-    op.add_option("-n", "--no", metavar="LIST", default="", help=
-                  "omit query sequences that share rearrangements with the "
-                  "specified files")
     op.add_option("--shrink", action="count", help="shrink the output")
     op.add_option("-v", "--verbose", action="count",
                   help="show progress messages")

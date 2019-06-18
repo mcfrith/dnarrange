@@ -25,13 +25,13 @@ PATH=..:$PATH
 
     try rearranged-sequence-clumps -s1 mito.maf
 
-    try rearranged-sequence-clumps -n2 -s4 alns.maf mito.maf
+    try rearranged-sequence-clumps -s4 alns.maf : mito.maf
 
     try rearranged-sequence-clumps -tG -g11 -s1 mito.maf
 
-    try rearranged-sequence-clumps -n2 -s3 -c1 alns.maf neg.maf
+    try rearranged-sequence-clumps -s3 -c1 alns.maf : neg.maf
 
-    try rearranged-sequence-clumps -y2 -s3 alns.maf neg.maf
+    try rearranged-sequence-clumps -s3 alns.maf neg.maf
 
     try rearranged-sequence-clumps -d200 -s3 -tC alns.maf
 

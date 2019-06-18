@@ -3,37 +3,44 @@
 This is a method to find rearrangements in "long" DNA reads relative
 to a genome sequence.
 
-## Usage
+### Step 1: Align the reads to the genome
 
-First, align the reads to the genome as described
-[here](https://github.com/mcfrith/last-rna/blob/master/last-long-reads.md).
+You can use [this
+recipe](https://github.com/mcfrith/last-rna/blob/master/last-long-reads.md).
 
 * You can use `last-split` `-fMAF`, to reduce the file size, with no
-  effect on `rearranged-sequence-clumps`.
+  effect on the following steps.
 
-Then, find rearranged reads, and clump (i.e. group) reads that seem to
-share a rearrangement:
+### Step 2: Find rearrangements
 
-    rearranged-sequence-clumps myseq.maf > clumps.maf
+1. Find rearranged reads
+2. Discard "case" reads that share rearrangements with "control" reads
+3. Group "case" reads that overlap the same rearrangement
 
-This also works with `myseq.maf.gz`.  Finally, draw one picture per
-clump of read-to-genome alignments, in a new directory `clump-pics`:
+Like this:
 
-    last-multiplot clumps.maf clump-pics
+    rearranged-sequence-clumps case.maf : control1.maf control2.maf > groups.maf
+
+The input files may be gzipped (`.gz`).
+
+It's OK to not use "control" files, or use them in a separate step:
+
+    rearranged-sequence-clumps case.maf > groups0.maf
+    rearranged-sequence-clumps groups0.maf : control1.maf control2.maf > groups.maf
+
+It's OK to use more than one "case" file: `rearranged-sequence-clumps`
+will only output groups that include reads from all case files.
 
 `rearranged-sequence-clumps` tries to flip the reads' strands so all
 the reads in a clump are on the same strand.  A `-` at the end of a
 read name indicates that it's flipped, `+` unflipped.
 
-## Multiple input files
+### Step 3: Draw pictures of the groups
 
-You can find clumps from multiple files, for example:
+Draw a picture of each group, showing the read-to-genome alignments,
+in a new directory `group-pics`:
 
-    rearranged-sequence-clumps -n2,3 child.maf mother.maf father.maf > child-only.maf
-
-`-n2,3` tells it to exclude rearrangements in the 2nd and 3rd files:
-it will discard any child DNA read that shares a rearrangement with
-any mother or father read, then clump the remaining child reads.
+    last-multiplot groups.maf group-pics
 
 ## `rearranged-sequence-clumps` options
 
@@ -67,12 +74,6 @@ any mother or father read, then clump the remaining child reads.
   rearrangement shared by < N other queries (default=0).  Suggestion:
   if your output looks messy, try cleaning it by applying `-c1` to the
   output.
-
-- `-y FILENUMS`, `--yes=FILENUMS`: require clumps to include the
-  specified files.
-
-- `-n FILENUMS`, `--no=FILENUMS`: discard any DNA read that shares a
-  rearrangement with any read from the specified files.
 
 - `--shrink`: write the output in a compact format.  This format can
   be read by `rearranged-sequence-clumps`.
