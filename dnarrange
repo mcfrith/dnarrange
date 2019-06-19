@@ -587,21 +587,25 @@ def wantedClumps(minNumOfFiles, fileNumsPerQuery, clumps):
             clumpName = "group{0}-{1}".format(clumpNum + 1, len(clump))
             yield clumpName, clump
 
-def rangeText(alignment, isFlipped):
-    qryBeg, qryEnd, refName, refBeg, refEnd = alignment[1:6]
-    sep = "<"
+def flippedAlignment(alignment, isFlipped):
+    qryNum, qryBeg, qryEnd, refName, refBeg, refEnd = alignment[:6]
+    # use reverse strand of query if isFlipped, else forward strand:
     if (qryBeg < 0) != isFlipped:
-        refBeg, refEnd = refEnd, refBeg
-        sep = ">"
-    return "{0}:{1}{2}{3}".format(refName, refBeg, sep, refEnd)
+        qryBeg, qryEnd = -qryEnd, -qryBeg
+        refBeg, refEnd = -refEnd, -refBeg
+    return qryNum, qryBeg, qryEnd, refName, refBeg, refEnd
+
+def rangeText(alignment):
+    refName, refBeg, refEnd = alignment[3:6]
+    sign = ">" if refBeg < 0 else "<"
+    return "{0}:{1}{2}{3}".format(refName, abs(refBeg), sign, abs(refEnd))
 
 def qrySummary(queryNames, alignmentsPerQuery, qryNum, isFlipped):
     qryName = queryNames[qryNum]
     newQryName, isAddChar = qryNameWithStrand(qryName, isFlipped)
     alns = alignmentsPerQuery[qryNum]
-    if isFlipped:
-        alns = reversed(alns)
-    ranges = [rangeText(i, isFlipped) for i in alns]
+    flippedAlns = sorted(flippedAlignment(i, isFlipped) for i in alns)
+    ranges = [rangeText(i) for i in flippedAlns]
     return newQryName, ranges
 
 def main(opts, args):
