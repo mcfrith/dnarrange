@@ -595,18 +595,41 @@ def flippedAlignment(alignment, isFlipped):
         refBeg, refEnd = -refEnd, -refBeg
     return qryNum, qryBeg, qryEnd, refName, refBeg, refEnd
 
-def rangeText(alignment):
-    refName, refBeg, refEnd = alignment[3:6]
+def rangeText(refRange):
+    refName, refBeg, refEnd = refRange
     sign = ">" if refBeg < 0 else "<"
     return "{0}:{1}{2}{3}".format(refName, abs(refBeg), sign, abs(refEnd))
 
-def qrySummary(queryNames, alignmentsPerQuery, qryNum, isFlipped):
+def isJoinableAlignments(opts, x, y):
+    if refNameAndStrand(x) != refNameAndStrand(y):
+        return False
+    if y[4] >= x[5] + opts.min_gap:
+        return False
+    if y[1] >= x[2] + opts.min_gap:
+        return False
+    if x[5] >= y[4] + opts.min_rev or x[5] >= y[5]:
+        return False
+    return True
+
+def refRangesFromFlippedAlns(opts, flippedAlns):
+    for j, y in enumerate(flippedAlns):
+        if j:
+            x = flippedAlns[j - 1]
+            if isJoinableAlignments(opts, x, y):
+                refEnd = y[5]
+                continue
+            yield refName, refBeg, refEnd
+        refName, refBeg, refEnd = y[3:6]
+    yield refName, refBeg, refEnd
+
+def qrySummary(opts, queryNames, alignmentsPerQuery, qryNum, isFlipped):
     qryName = queryNames[qryNum]
     newQryName, isAddChar = qryNameWithStrand(qryName, isFlipped)
     alns = alignmentsPerQuery[qryNum]
     flippedAlns = sorted(flippedAlignment(i, isFlipped) for i in alns)
-    ranges = [rangeText(i) for i in flippedAlns]
-    return newQryName, ranges
+    refRanges = refRangesFromFlippedAlns(opts, flippedAlns)
+    texts = [rangeText(i) for i in refRanges]
+    return newQryName, texts
 
 def main(opts, args):
     logLevel = logging.INFO if opts.verbose else logging.WARNING
@@ -659,7 +682,8 @@ def main(opts, args):
     if not opts.shrink:
         for clumpName, clump in goodClumps:
             print("#", clumpName)
-            s = [qrySummary(queryNames, alignmentsPerQuery, *i) for i in clump]
+            s = [qrySummary(opts, queryNames, alignmentsPerQuery, *i)
+                 for i in clump]
             width = max(len(newQryName) for newQryName, ranges in s)
             for newQryName, ranges in s:
                 paddedName = format(newQryName, str(width))
