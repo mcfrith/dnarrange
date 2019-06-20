@@ -1,0 +1,291 @@
+#! /usr/bin/env python
+# Author: Martin C. Frith 2019
+
+from __future__ import print_function
+
+import gzip
+import itertools
+import logging
+import optparse
+import string
+import sys
+from operator import itemgetter
+
+def openFile(fileName):
+    if fileName == "-":
+        return sys.stdin
+    if fileName.endswith(".gz"):
+        return gzip.open(fileName, "rt")  # xxx dubious for Python2
+    return open(fileName)
+
+def isSeqRange(text):
+    if text.count(":") == 1:
+        sequenceName, r = text.split(":")
+        for i in "<>":
+            if r.count(i) == 1:
+                beg, end = r.split(i)
+                return beg.isdigit() and end.isdigit()
+    return False
+
+def isAllSeqRanges(fields):
+    return all(map(isSeqRange, fields))
+
+def seqRangeFromText(text):
+    sequenceName, r = text.split(":")
+    parts = r.split("<" if "<" in r else ">")
+    beg, end = map(int, parts)
+    if beg == end:
+        raise Exception("zero-length segment: " + text)
+    return sequenceName, beg, end
+
+def rearrangementsFromLines(lines):
+    state = 0
+    for line in lines:
+        isSharp = line.startswith("# ")
+        fields = line.split()
+        if state == 0:
+            if isSharp and len(fields) == 2:
+                groupName = fields[1]
+                state = 1
+        elif state == 1:
+            if isSharp and len(fields) == 2:
+                groupName = fields[1]
+            elif isSharp and len(fields) > 2 and isAllSeqRanges(fields[2:]):
+                seqRanges = [seqRangeFromText(i) for i in fields[2:]]
+                state = 2
+        elif state == 2:
+            if isSharp and len(fields) > 1 and isAllSeqRanges(fields[1:]):
+                seqRanges.extend(seqRangeFromText(i) for i in fields[1:])
+            else:
+                yield groupName, seqRanges
+                state = 3
+        else:
+            if len(fields) < 2:
+                state = 0
+    if state == 2:
+        yield groupName, seqRanges
+
+def nodesFromRearrangements(rearrangements):
+    for rearrangementNum, r in enumerate(rearrangements):
+        _, segments = r
+        chrom0, beg0, end0 = segments[0]
+        mid0 = (beg0 + end0) // 2
+        isLowerEnd0 = (beg0 < end0)
+        yield chrom0, mid0, isLowerEnd0, rearrangementNum, 0
+        chrom1, beg1, end1 = segments[-1]
+        mid1 = (beg1 + end1) // 2
+        isLowerEnd1 = (end1 < beg1)
+        yield chrom1, mid1, isLowerEnd1, rearrangementNum, 1
+
+def showNodesOfOneChromosome(rearrangements, sortedNodesOfOneChromosome):
+    upperAndLowerEndSymbols = "=]", "[="
+    chromName = sortedNodesOfOneChromosome[0][0]
+    print(chromName + ":", file=sys.stderr)
+    for node in sortedNodesOfOneChromosome:
+        pos, isLowerEnd, rearrangementNum = node[1:4]
+        endSymbol = upperAndLowerEndSymbols[isLowerEnd]
+        name = rearrangements[rearrangementNum][0]
+        print("{0:9}  {1}  {2}".format(pos, endSymbol, name), file=sys.stderr)
+    print(file=sys.stderr)
+
+# See: https://en.wikipedia.org/wiki/Matching_(graph_theory)
+def numOfMaximumMatchings(sortedNodesOfOneChromosome):
+    upperEndCount = 0
+    matchingCounts = [1]  # matchingCounts[i] = count of matchings with i edges
+    for node in sortedNodesOfOneChromosome:
+        isLowerEnd = node[2]
+        if isLowerEnd:
+            if upperEndCount >= len(matchingCounts):
+                matchingCounts.append(0)
+            for j in reversed(range(1, len(matchingCounts))):
+                i = j - 1
+                matchingCounts[j] += matchingCounts[i] * (upperEndCount - i)
+        else:
+            upperEndCount += 1
+    return matchingCounts[-1]
+
+def edgesFromNodes(sortedNodesOfOneChromosome):
+    upperEnds = []
+    for node in sortedNodesOfOneChromosome:
+        isLowerEnd = node[2]
+        if isLowerEnd:
+            if upperEnds:
+                n = upperEnds.pop()
+                yield n[3:5], node[3:5]
+        else:
+            upperEnds.append(node)
+
+def nextNode(edges, node):
+    for x, y in edges:
+        if x == node:
+            return y
+        if y == node:
+            return x
+    return None
+
+def takeLinkedNodes(edges, isUsed, rearrangementNum, endNum):
+    node = rearrangementNum, endNum
+    while True:
+        node = nextNode(edges, node)
+        if not node:
+            break
+        rNum, eNum = node
+        if isUsed[rNum]:
+            break
+        isFlipped = int(eNum == endNum)
+        yield rNum, isFlipped
+        isUsed[rNum] = True
+        node = rNum, 1 - eNum
+
+def connectedComponents(numOfRearrangements, edges):
+    isUsed = [False] * numOfRearrangements
+    for rearrangementNum in range(numOfRearrangements):
+        if not isUsed[rearrangementNum]:
+            isFlipped = 0
+            thisNode = rearrangementNum, isFlipped
+            isUsed[rearrangementNum] = True
+            prevNodes = takeLinkedNodes(edges, isUsed, rearrangementNum, 0)
+            nextNodes = takeLinkedNodes(edges, isUsed, rearrangementNum, 1)
+            yield list(prevNodes)[::-1] + [thisNode] + list(nextNodes)
+
+def isCircular(derivedSeq, edges):
+    return nextNode(edges, derivedSeq[0])
+
+def chromosomesOfOneDerivedSeq(rearrangements, derivedSeq):
+    for rearrangementNum, isFlipped in derivedSeq:
+        name, segments = rearrangements[rearrangementNum]
+        for chrom, beg, end in segments:
+            yield chrom
+
+def derivedSeqGroupSortKey(group):
+    chroms, derivedSeqList = group
+    return -len(derivedSeqList), sorted(chroms)
+
+def derivedSeqSortKey(derivedSeq):
+    return -len(derivedSeq), min(derivedSeq)  # xxx ???
+
+def newDerivedSeqGroups(rearrangements, groups, newDerivedSeq):
+    newChroms = set(chromosomesOfOneDerivedSeq(rearrangements, newDerivedSeq))
+    newDerivedSeqList = [newDerivedSeq]
+    for g in groups:
+        chroms, derivedSeqList = g
+        if chroms & newChroms:
+            newChroms |= chroms
+            newDerivedSeqList += derivedSeqList
+        else:
+            yield g
+    yield newChroms, newDerivedSeqList
+
+def derivedSeqGroups(rearrangements, derivedSeqs):
+    groups = []
+    for i in derivedSeqs:
+        groups = list(newDerivedSeqGroups(rearrangements, groups, i))
+    return groups
+
+def showRearrangementOrder(rearrangements, derName, derivedSeq):
+    print(derName, file=sys.stderr)
+    for rearrangementNum, isFlipped in derivedSeq:
+        name, segments = rearrangements[rearrangementNum]
+        strand = "+-"[isFlipped]
+        print(strand, name, file=sys.stderr)
+    print(file=sys.stderr)
+
+def printSegment(chrom, beg, end):
+    sign = "<" if beg < end else ">"
+    print(chrom, beg, sign, end, sep="\t")
+
+def derivedSeqSegments(rearrangements, derivedSeq):
+    for i, x in enumerate(derivedSeq):
+        rearrangementNum, isFlipped = x
+        _, segments = rearrangements[rearrangementNum]
+        if isFlipped:
+            segments = [(c, end, beg) for c, beg, end in reversed(segments)]
+        for j, y in enumerate(segments):
+            if j == 0:
+                if i == 0:
+                    seg = y
+                else:
+                    seg = seg[0:2] + y[2:3]
+            else:
+                yield seg
+                seg = y
+    yield seg
+
+def segmentGroups(segments, maxLen):
+    stub = maxLen // 3  # xxx ???
+    group = []
+    for seg in segments:
+        chrom, beg, end = seg
+        if abs(end - beg) <= maxLen:
+            group.append(seg)
+        else:
+            if beg < end:
+                e = beg + stub
+                b = end - stub
+            else:
+                e = beg - stub
+                b = end + stub
+            group.append((chrom, beg, e))
+            yield group
+            group = [(chrom, b, end)]
+    yield group
+
+def printDerivedSeq(opts, rearrangements, derName, derivedSeq):
+    segments = derivedSeqSegments(rearrangements, derivedSeq)
+    sg = list(segmentGroups(segments, int(opts.maxlen)))
+    for i, x in enumerate(sg):
+        groupName = derName
+        if len(sg) > 1:
+            groupName += string.ascii_lowercase[i]
+        print(groupName)
+        for seg in x:
+            printSegment(*seg)
+        print()
+
+def main(opts, args):
+    logging.basicConfig(format="%(filename)s: WARNING: %(message)s")
+    rearrangements = list(rearrangementsFromLines(openFile(args[0])))
+    nodes = sorted(nodesFromRearrangements(rearrangements))
+    edges = []
+    for chrom, group in itertools.groupby(nodes, itemgetter(0)):
+        group = list(group)
+        numOfMatchings = numOfMaximumMatchings(group)
+        if numOfMatchings > 1:
+            warning = "{0} equally-good ways of linking ends in {1}"
+            logging.warning(warning.format(numOfMatchings, chrom))
+        if opts.verbose:
+            showNodesOfOneChromosome(rearrangements, group)
+        edges.extend(edgesFromNodes(group))
+
+    derivedSeqs = connectedComponents(len(rearrangements), edges)
+    groups = derivedSeqGroups(rearrangements, derivedSeqs)
+    groups.sort(key=derivedSeqGroupSortKey)
+
+    derivedSeqNumber = 0
+    for i, g in enumerate(groups):
+        chroms, derSeqs = g
+        derSeqs.sort(key=derivedSeqSortKey)
+        print("# PART " + str(i+1))
+        print()
+        for derSeq in derSeqs:
+            derivedSeqNumber += 1
+            derName = "der" + str(derivedSeqNumber)
+            if isCircular(derSeq, edges):
+                derName += ":CIRCULAR"
+            if opts.verbose:
+                showRearrangementOrder(rearrangements, derName, derSeq)
+            printDerivedSeq(opts, rearrangements, derName, derSeq)
+
+if __name__ == "__main__":
+    usage = "%prog [options] rearrangements-file > linked.txt"
+    descr = "Infer links between rearranged sequences, and reconstruct derived chromosomes."
+    op = optparse.OptionParser(usage=usage, description=descr)
+    op.add_option("-m", "--maxlen", type="float", metavar="L", default=1000000,
+                  help="cut segments > M in the output (default=%default)")
+    op.add_option("-v", "--verbose", action="count", default=0,
+                  help="show more details")
+    opts, args = op.parse_args()
+    if len(args) == 1:
+        main(opts, args)
+    else:
+        op.print_help()

@@ -42,5 +42,9 @@ PATH=..:$PATH
     try dnarrange --shrink -s0 -r1 -g40 alns.maf
 
     try dnarrange -c1 alns.txt
+
+    try dnarrange-link alns-summary.txt
+    try dnarrange-link -m1e9 alns-summary.txt
+    try dnarrange-link -v alns-summary.txt
 } 2>&1 |
 diff -u $(basename $0 .sh).out -

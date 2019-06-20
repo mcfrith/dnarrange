@@ -56,6 +56,66 @@ your PATH).  This in turn requires the [Python Imaging
 Library](https://pillow.readthedocs.io/) to be installed (good luck
 with that).
 
+### Step 4: Check and (if necessary) hand-edit the groups
+
+The step after this infers how the groups are linked, but it uses only
+the topmost read in each group.  So we need to ensure that the topmost
+read represents the whole group, and covers all the group's
+rearrangement breakpoints.  We can check this by looking at the
+pictures.
+
+If necessary, we can hand edit `groups.maf`.  This file begins with a
+summary of each group, like this:
+
+    # group7-2
+    # readA+ chr19:17558023>17557054 chr18:23830954<23831466
+    # readB- chr19:17558023>17557056 chr18:23830970<23831547
+
+This shows how each read aligns to the genome.  We can edit the
+summary, e.g.  move another read to the top of the group, or create a
+fake topmost read with all the breakpoints.
+
+It may be useful to "clean" the groups like this:
+
+    dnarrange -c1 groups.maf > clean-groups.maf
+
+This discards any read with a rearrangement not shared by any other
+read.
+
+### Step 5: Reconstruct the rearranged chromsomes
+
+    dnarrange-link groups.maf > linked.txt
+
+You might get a warning message like this:
+
+    WARNING: 256 equally-good ways of linking ends in chr8
+
+In this case, `dnarrange-link` arbitrarily picks one of these
+ways to link the ends in chr8.
+
+The reconstructed chromosomes are given names like `der1`, `der2`.  If
+a reconstructed chromosome has widely-separated rearrangements, it's
+broken into parts like `der2a`, `der2b`.  You can control this
+breaking with option `-m` (see `dnarrange-link --help`).
+
+### Step 6: Draw pictures of the rearranged chromosomes
+
+    last-multiplot linked.txt linked-pics
+
+To make the pictures clearer, you may wish to:
+
+* Change the `dnarrange-link` `-m` parameter.  Large values best show
+  the "big picture", and small values magnify small-scale
+  rearrangements.
+
+* Draw a subset of derived sequences with [option
+  -2](http://last.cbrc.jp/doc/last-dotplot.html#choosing-sequences):
+
+      last-multiplot -2 'der[257]*' linked.txt linked-pics
+
+* Hand-edit `linked.txt`, to lengthen the topmost and bottommost
+  segments of a derived chromosome.
+
 ## `dnarrange` options
 
 - `-h`, `--help`: show a help message, with default option values, and
@@ -85,9 +145,7 @@ with that).
   rearrangement (default=1000).
 
 - `-c N`, `--min-cov=N`: omit any query sequence that has any
-  rearrangement shared by < N other queries (default=0).  Suggestion:
-  if your output looks messy, try cleaning it by applying `-c1` to the
-  output.
+  rearrangement shared by < N other queries (default=0).
 
 - `--shrink`: write the output in a compact format.  This format can
   be read by `dnarrange`.
