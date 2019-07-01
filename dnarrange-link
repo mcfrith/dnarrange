@@ -161,9 +161,6 @@ def derivedSeqGroupSortKey(group):
     chroms, derivedSeqList = group
     return -len(derivedSeqList), sorted(chroms)
 
-def derivedSeqSortKey(derivedSeq):
-    return -len(derivedSeq), min(derivedSeq)  # xxx ???
-
 def newDerivedSeqGroups(rearrangements, groups, newDerivedSeq):
     newChroms = set(chromosomesOfOneDerivedSeq(rearrangements, newDerivedSeq))
     newDerivedSeqList = [newDerivedSeq]
@@ -181,14 +178,6 @@ def derivedSeqGroups(rearrangements, derivedSeqs):
     for i in derivedSeqs:
         groups = list(newDerivedSeqGroups(rearrangements, groups, i))
     return groups
-
-def showRearrangementOrder(rearrangements, derName, derivedSeq):
-    print(derName, file=sys.stderr)
-    for rearrangementNum, isFlipped in derivedSeq:
-        name, segments = rearrangements[rearrangementNum]
-        strand = "+-"[isFlipped]
-        print(strand, name, file=sys.stderr)
-    print(file=sys.stderr)
 
 def printSegment(chrom, beg, end):
     sign = "<" if beg < end else ">"
@@ -210,6 +199,17 @@ def derivedSeqSegments(rearrangements, rearrangementChain):
                 yield seg
                 seg = y
     yield seg
+
+def derivedSeqSortKey(derivedSeq):
+    return -len(derivedSeq), min(derivedSeq)  # xxx ???
+
+def showRearrangementOrder(rearrangements, derName, derivedSeq):
+    print(derName, file=sys.stderr)
+    for rearrangementNum, isFlipped in derivedSeq:
+        name, segments = rearrangements[rearrangementNum]
+        strand = "+-"[isFlipped]
+        print(strand, name, file=sys.stderr)
+    print(file=sys.stderr)
 
 def segmentGroups(segments, maxLen):
     stub = maxLen // 3  # xxx ???
