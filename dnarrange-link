@@ -137,7 +137,7 @@ def takeLinkedNodes(edges, isUsed, rearrangementNum, endNum):
         isUsed[rNum] = True
         node = rNum, 1 - eNum
 
-def connectedComponents(numOfRearrangements, edges):
+def rearrangementChainsFromEdges(numOfRearrangements, edges):
     isUsed = [False] * numOfRearrangements
     for rearrangementNum in range(numOfRearrangements):
         if not isUsed[rearrangementNum]:
@@ -148,8 +148,8 @@ def connectedComponents(numOfRearrangements, edges):
             nextNodes = takeLinkedNodes(edges, isUsed, rearrangementNum, 1)
             yield list(prevNodes)[::-1] + [thisNode] + list(nextNodes)
 
-def isCircular(derivedSeq, edges):
-    return nextNode(edges, derivedSeq[0])
+def isCircular(rearrangementChain, edges):
+    return nextNode(edges, rearrangementChain[0])
 
 def chromosomesOfOneDerivedSeq(rearrangements, derivedSeq):
     for rearrangementNum, isFlipped in derivedSeq:
@@ -194,8 +194,8 @@ def printSegment(chrom, beg, end):
     sign = "<" if beg < end else ">"
     print(chrom, beg, sign, end, sep="\t")
 
-def derivedSeqSegments(rearrangements, derivedSeq):
-    for i, x in enumerate(derivedSeq):
+def derivedSeqSegments(rearrangements, rearrangementChain):
+    for i, x in enumerate(rearrangementChain):
         rearrangementNum, isFlipped = x
         _, segments = rearrangements[rearrangementNum]
         if isFlipped:
@@ -257,8 +257,8 @@ def main(opts, args):
             showNodesOfOneChromosome(rearrangements, group)
         edges.extend(edgesFromNodes(group))
 
-    derivedSeqs = connectedComponents(len(rearrangements), edges)
-    groups = derivedSeqGroups(rearrangements, derivedSeqs)
+    chains = rearrangementChainsFromEdges(len(rearrangements), edges)
+    groups = derivedSeqGroups(rearrangements, chains)
     groups.sort(key=derivedSeqGroupSortKey)
 
     derivedSeqNumber = 0
