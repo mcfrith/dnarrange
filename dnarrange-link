@@ -151,18 +151,11 @@ def rearrangementChainsFromEdges(numOfRearrangements, edges):
 def isCircular(rearrangementChain, edges):
     return nextNode(edges, rearrangementChain[0])
 
-def chromosomesOfOneDerivedSeq(rearrangements, derivedSeq):
-    for rearrangementNum, isFlipped in derivedSeq:
-        name, segments = rearrangements[rearrangementNum]
-        for chrom, beg, end in segments:
-            yield chrom
-
 def derivedSeqGroupSortKey(group):
     chroms, derivedSeqList = group
     return -len(derivedSeqList), sorted(chroms)
 
-def newDerivedSeqGroups(rearrangements, groups, newDerivedSeq):
-    newChroms = set(chromosomesOfOneDerivedSeq(rearrangements, newDerivedSeq))
+def newDerivedSeqGroups(groups, newDerivedSeq, newChroms):
     newDerivedSeqList = [newDerivedSeq]
     for g in groups:
         chroms, derivedSeqList = g
@@ -173,10 +166,11 @@ def newDerivedSeqGroups(rearrangements, groups, newDerivedSeq):
             yield g
     yield newChroms, newDerivedSeqList
 
-def derivedSeqGroups(rearrangements, derivedSeqs):
+def derivedSeqGroups(derivedSeqs):
     groups = []
-    for i in derivedSeqs:
-        groups = list(newDerivedSeqGroups(rearrangements, groups, i))
+    for chain, segments in derivedSeqs:
+        newChroms = set(chrom for chrom, beg, end in segments)
+        groups = list(newDerivedSeqGroups(groups, chain, newChroms))
     return groups
 
 def printSegment(chrom, beg, end):
@@ -199,6 +193,10 @@ def derivedSeqSegments(rearrangements, rearrangementChain):
                 yield seg
                 seg = y
     yield seg
+
+def derivedSeqFromChain(rearrangements, rearrangementChain):
+    segments = list(derivedSeqSegments(rearrangements, rearrangementChain))
+    return rearrangementChain, segments
 
 def derivedSeqSortKey(derivedSeq):
     return -len(derivedSeq), min(derivedSeq)  # xxx ???
@@ -258,7 +256,8 @@ def main(opts, args):
         edges.extend(edgesFromNodes(group))
 
     chains = rearrangementChainsFromEdges(len(rearrangements), edges)
-    groups = derivedSeqGroups(rearrangements, chains)
+    derSeqs = [derivedSeqFromChain(rearrangements, i) for i in chains]
+    groups = derivedSeqGroups(derSeqs)
     groups.sort(key=derivedSeqGroupSortKey)
 
     derivedSeqNumber = 0
