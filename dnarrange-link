@@ -153,7 +153,7 @@ def isCircular(rearrangementChain, edges):
 
 def derivedSeqGroupSortKey(group):
     chroms, derivedSeqList = group
-    return -len(derivedSeqList), sorted(chroms)
+    return sorted(chroms)
 
 def newDerivedSeqGroups(groups, newDerivedSeq, newChroms):
     newDerivedSeqList = [newDerivedSeq]
