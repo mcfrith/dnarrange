@@ -271,6 +271,10 @@ def main(opts, args):
     derSeqs.sort(key=derivedSeqSortKey)
     derSeqs = list(namedDerivedSeqs(derSeqs, edges))
 
+    if opts.verbose:
+        for i in derSeqs:
+            showRearrangementOrder(rearrangements, i)
+
     groups = derivedSeqGroups(derSeqs)
     groups.sort(key=derivedSeqGroupSortKey)
 
@@ -279,8 +283,6 @@ def main(opts, args):
         print("# PART " + str(i+1))
         print()
         for derSeq in derSeqs:
-            if opts.verbose:
-                showRearrangementOrder(rearrangements, derSeq)
             printDerivedSeq(opts, derSeq)
 
 if __name__ == "__main__":

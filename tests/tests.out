@@ -1674,6 +1674,12 @@ chr8:
 chr9:
     45063  =]  group1-4
 
+der1
++ group1-4
+
+der2
++ group2-3
+
 der3
 - group6-2
 + group3-2
@@ -1683,12 +1689,6 @@ der4
 
 der5
 + group5-2
-
-der1
-+ group1-4
-
-der2
-+ group2-3
 
 # PART 1
 
