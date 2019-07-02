@@ -18,6 +18,23 @@ def openFile(fileName):
         return gzip.open(fileName, "rt")  # xxx dubious for Python2
     return open(fileName)
 
+def connectedComponent(adjacencyList, isNew, i):
+    stack = [i]
+    isNew[i] = False
+    while stack:
+        j = stack.pop()
+        yield j
+        for k in adjacencyList[j]:
+            if isNew[k]:
+                stack.append(k)
+                isNew[k] = False
+
+def connectedComponents(adjacencyList):
+    isNew = [True] * len(adjacencyList)
+    for i in range(len(adjacencyList)):
+        if isNew[i]:
+            yield sorted(connectedComponent(adjacencyList, isNew, i))
+
 def isSeqRange(text):
     if text.count(":") == 1:
         sequenceName, r = text.split(":")
@@ -151,29 +168,6 @@ def rearrangementChainsFromEdges(numOfRearrangements, edges):
 def isCircular(rearrangementChain, edges):
     return nextNode(edges, rearrangementChain[0])
 
-def derivedSeqGroupSortKey(group):
-    chroms, derivedSeqList = group
-    return sorted(chroms)
-
-def newDerivedSeqGroups(groups, newDerivedSeq, newChroms):
-    newDerivedSeqList = [newDerivedSeq]
-    for g in groups:
-        chroms, derivedSeqList = g
-        if chroms & newChroms:
-            newChroms |= chroms
-            newDerivedSeqList = derivedSeqList + newDerivedSeqList
-        else:
-            yield g
-    yield newChroms, newDerivedSeqList
-
-def derivedSeqGroups(derivedSeqs):
-    groups = []
-    for i in derivedSeqs:
-        name, segments = i
-        newChroms = set(chrom for chrom, beg, end in segments)
-        groups = list(newDerivedSeqGroups(groups, i, newChroms))
-    return groups
-
 def printSegment(chrom, beg, end):
     sign = "<" if beg < end else ">"
     print(chrom, beg, sign, end, sep="\t")
@@ -247,6 +241,24 @@ def derivedSeqParts(opts, derivedSeqs):
             n = name if len(sg) == 1 else name + string.ascii_lowercase[j]
             yield n, y
 
+def isNear(derivedSeqPartX, derivedSeqPartY, maxDist):
+    nameX, segmentsX = derivedSeqPartX
+    nameY, segmentsY = derivedSeqPartY
+    for chrX, begX, endX in segmentsX:
+        bX = min(begX, endX)
+        eX = max(begX, endX)
+        for chrY, begY, endY in segmentsY:
+            bY = min(begY, endY)
+            eY = max(begY, endY)
+            if chrX == chrY and eX + maxDist >= bY and eY + maxDist >= bX:
+                return True
+    return False
+
+def adjacencyListOfDerivedSeqParts(derParts, maxDist):
+    for i, x in enumerate(derParts):
+        e = enumerate(derParts)
+        yield [j for j, y in e if i != j and isNear(x, y, maxDist)]
+
 def main(opts, args):
     logging.basicConfig(format="%(filename)s: WARNING: %(message)s")
     rearrangements = list(rearrangementsFromLines(openFile(args[0])))
@@ -272,14 +284,14 @@ def main(opts, args):
             showRearrangementOrder(rearrangements, i)
 
     derParts = list(derivedSeqParts(opts, derSeqs))
-    groups = derivedSeqGroups(derParts)
-    groups.sort(key=derivedSeqGroupSortKey)
+    adjList = list(adjacencyListOfDerivedSeqParts(derParts, int(opts.maxlen)))
+    components = connectedComponents(adjList)
 
-    for i, g in enumerate(groups):
-        chroms, derParts = g
+    for i, x in enumerate(components):
         print("# PART " + str(i+1))
         print()
-        for name, segments in derParts:
+        for derPartNum in x:
+            name, segments = derParts[derPartNum]
             print(name)
             for i in segments:
                 printSegment(*i)
@@ -290,7 +302,8 @@ if __name__ == "__main__":
     descr = "Infer links between rearranged sequences, and reconstruct derived chromosomes."
     op = optparse.OptionParser(usage=usage, description=descr)
     op.add_option("-m", "--maxlen", type="float", metavar="M", default=1000000,
-                  help="cut segments > M in the output (default=%default)")
+                  help="separate rearrangements > M bp apart "
+                  "(default=%default)")
     op.add_option("-v", "--verbose", action="count", default=0,
                   help="show more details")
     opts, args = op.parse_args()
