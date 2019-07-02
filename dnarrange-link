@@ -203,9 +203,9 @@ def derivedSeqSortKey(derivedSeq):
     rearrangementChain, segments = derivedSeq
     return sorted(segments)  # xxx ???
 
-def showRearrangementOrder(rearrangements, derName, derivedSeq):
-    rearrangementChain, segments = derivedSeq
-    print(derName, file=sys.stderr)
+def showRearrangementOrder(rearrangements, derivedSeq):
+    name, rearrangementChain, segments = derivedSeq
+    print(name, file=sys.stderr)
     for rearrangementNum, isFlipped in rearrangementChain:
         name, segments = rearrangements[rearrangementNum]
         strand = "+-"[isFlipped]
@@ -231,11 +231,11 @@ def segmentGroups(segments, maxLen):
             group = [(chrom, b, end)]
     yield group
 
-def printDerivedSeq(opts, derName, derivedSeq):
-    rearrangementChain, segments = derivedSeq
+def printDerivedSeq(opts, derivedSeq):
+    name, rearrangementChain, segments = derivedSeq
     sg = list(segmentGroups(segments, int(opts.maxlen)))
     for i, x in enumerate(sg):
-        groupName = derName
+        groupName = name
         if len(sg) > 1:
             groupName += string.ascii_lowercase[i]
         print(groupName)
@@ -275,9 +275,10 @@ def main(opts, args):
             derName = "der" + str(derivedSeqNumber)
             if isCircular(rearrangementChain, edges):
                 derName += ":CIRCULAR"
+            derSeq = derName, rearrangementChain, segments
             if opts.verbose:
-                showRearrangementOrder(rearrangements, derName, derSeq)
-            printDerivedSeq(opts, derName, derSeq)
+                showRearrangementOrder(rearrangements, derSeq)
+            printDerivedSeq(opts, derSeq)
 
 if __name__ == "__main__":
     usage = "%prog [options] rearrangements-file > linked.txt"
