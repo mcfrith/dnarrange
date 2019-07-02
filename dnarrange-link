@@ -76,9 +76,8 @@ def rearrangementsFromLines(lines):
             else:
                 yield groupName, seqRanges
                 state = 3
-        else:
-            if len(fields) < 2:
-                state = 0
+        if len(fields) < 2:
+            state = 0
     if state == 2:
         yield groupName, seqRanges
 
