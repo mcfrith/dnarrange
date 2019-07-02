@@ -161,7 +161,7 @@ def newDerivedSeqGroups(groups, newDerivedSeq, newChroms):
         chroms, derivedSeqList = g
         if chroms & newChroms:
             newChroms |= chroms
-            newDerivedSeqList += derivedSeqList
+            newDerivedSeqList = derivedSeqList + newDerivedSeqList
         else:
             yield g
     yield newChroms, newDerivedSeqList
@@ -169,7 +169,7 @@ def newDerivedSeqGroups(groups, newDerivedSeq, newChroms):
 def derivedSeqGroups(derivedSeqs):
     groups = []
     for i in derivedSeqs:
-        rearrangementChain, segments = i
+        name, rearrangementChain, segments = i
         newChroms = set(chrom for chrom, beg, end in segments)
         groups = list(newDerivedSeqGroups(groups, i, newChroms))
     return groups
@@ -202,6 +202,14 @@ def derivedSeqFromChain(rearrangements, rearrangementChain):
 def derivedSeqSortKey(derivedSeq):
     rearrangementChain, segments = derivedSeq
     return sorted(segments)  # xxx ???
+
+def namedDerivedSeqs(derivedSeqs, edges):
+    for i, x in enumerate(derivedSeqs):
+        rearrangementChain, segments = x
+        name = "der" + str(i + 1)
+        if isCircular(rearrangementChain, edges):
+            name += ":CIRCULAR"
+        yield name, rearrangementChain, segments
 
 def showRearrangementOrder(rearrangements, derivedSeq):
     name, rearrangementChain, segments = derivedSeq
@@ -260,22 +268,17 @@ def main(opts, args):
 
     chains = rearrangementChainsFromEdges(len(rearrangements), edges)
     derSeqs = [derivedSeqFromChain(rearrangements, i) for i in chains]
+    derSeqs.sort(key=derivedSeqSortKey)
+    derSeqs = list(namedDerivedSeqs(derSeqs, edges))
+
     groups = derivedSeqGroups(derSeqs)
     groups.sort(key=derivedSeqGroupSortKey)
 
-    derivedSeqNumber = 0
     for i, g in enumerate(groups):
         chroms, derSeqs = g
-        derSeqs.sort(key=derivedSeqSortKey)
         print("# PART " + str(i+1))
         print()
         for derSeq in derSeqs:
-            rearrangementChain, segments = derSeq
-            derivedSeqNumber += 1
-            derName = "der" + str(derivedSeqNumber)
-            if isCircular(rearrangementChain, edges):
-                derName += ":CIRCULAR"
-            derSeq = derName, rearrangementChain, segments
             if opts.verbose:
                 showRearrangementOrder(rearrangements, derSeq)
             printDerivedSeq(opts, derSeq)
