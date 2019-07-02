@@ -169,7 +169,7 @@ def newDerivedSeqGroups(groups, newDerivedSeq, newChroms):
 def derivedSeqGroups(derivedSeqs):
     groups = []
     for i in derivedSeqs:
-        name, rearrangementChain, segments = i
+        name, segments = i
         newChroms = set(chrom for chrom, beg, end in segments)
         groups = list(newDerivedSeqGroups(groups, i, newChroms))
     return groups
@@ -239,17 +239,13 @@ def segmentGroups(segments, maxLen):
             group = [(chrom, b, end)]
     yield group
 
-def printDerivedSeq(opts, derivedSeq):
-    name, rearrangementChain, segments = derivedSeq
-    sg = list(segmentGroups(segments, int(opts.maxlen)))
-    for i, x in enumerate(sg):
-        groupName = name
-        if len(sg) > 1:
-            groupName += string.ascii_lowercase[i]
-        print(groupName)
-        for seg in x:
-            printSegment(*seg)
-        print()
+def derivedSeqParts(opts, derivedSeqs):
+    for i, x in enumerate(derivedSeqs):
+        name, rearrangementChain, segments = x
+        sg = list(segmentGroups(segments, int(opts.maxlen)))
+        for j, y in enumerate(sg):
+            n = name if len(sg) == 1 else name + string.ascii_lowercase[j]
+            yield n, y
 
 def main(opts, args):
     logging.basicConfig(format="%(filename)s: WARNING: %(message)s")
@@ -275,15 +271,19 @@ def main(opts, args):
         for i in derSeqs:
             showRearrangementOrder(rearrangements, i)
 
-    groups = derivedSeqGroups(derSeqs)
+    derParts = list(derivedSeqParts(opts, derSeqs))
+    groups = derivedSeqGroups(derParts)
     groups.sort(key=derivedSeqGroupSortKey)
 
     for i, g in enumerate(groups):
-        chroms, derSeqs = g
+        chroms, derParts = g
         print("# PART " + str(i+1))
         print()
-        for derSeq in derSeqs:
-            printDerivedSeq(opts, derSeq)
+        for name, segments in derParts:
+            print(name)
+            for i in segments:
+                printSegment(*i)
+            print()
 
 if __name__ == "__main__":
     usage = "%prog [options] rearrangements-file > linked.txt"
