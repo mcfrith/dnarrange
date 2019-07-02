@@ -201,7 +201,7 @@ def derivedSeqFromChain(rearrangements, rearrangementChain):
 
 def derivedSeqSortKey(derivedSeq):
     rearrangementChain, segments = derivedSeq
-    return -len(rearrangementChain), min(rearrangementChain)  # xxx ???
+    return sorted(segments)  # xxx ???
 
 def showRearrangementOrder(rearrangements, derName, derivedSeq):
     rearrangementChain, segments = derivedSeq
