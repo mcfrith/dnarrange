@@ -171,12 +171,28 @@ def printSegment(chrom, beg, end):
     sign = "<" if beg < end else ">"
     print(chrom, beg, sign, end, sep="\t")
 
+def orientedSegments(rearrangements, rearrangementChainItem):
+    rearrangementNum, isFlipped = rearrangementChainItem
+    junk, segments = rearrangements[rearrangementNum]
+    if isFlipped:
+        return [(c, end, beg) for c, beg, end in reversed(segments)]
+    return segments
+
+def isRevSegment(rearrangements, rearrangementChain, index):
+    segments = orientedSegments(rearrangements, rearrangementChain[index])
+    junk, beg, end = segments[index]
+    return beg > end
+
+def flippedRearrangementChain(rearrangements, rearrangementChain):
+    isRevHead = isRevSegment(rearrangements, rearrangementChain, 0)
+    isRevTail = isRevSegment(rearrangements, rearrangementChain, -1)
+    if isRevHead and isRevTail:
+        return [(i, 1 - j) for i, j in reversed(rearrangementChain)]
+    return rearrangementChain
+
 def derivedSeqSegments(rearrangements, rearrangementChain):
     for i, x in enumerate(rearrangementChain):
-        rearrangementNum, isFlipped = x
-        _, segments = rearrangements[rearrangementNum]
-        if isFlipped:
-            segments = [(c, end, beg) for c, beg, end in reversed(segments)]
+        segments = orientedSegments(rearrangements, x)
         for j, y in enumerate(segments):
             if j == 0:
                 if i == 0:
@@ -189,8 +205,9 @@ def derivedSeqSegments(rearrangements, rearrangementChain):
     yield seg
 
 def derivedSeqFromChain(rearrangements, rearrangementChain):
-    segments = list(derivedSeqSegments(rearrangements, rearrangementChain))
-    return rearrangementChain, segments
+    c = flippedRearrangementChain(rearrangements, rearrangementChain)
+    segments = list(derivedSeqSegments(rearrangements, c))
+    return c, segments
 
 def derivedSeqSortKey(derivedSeq):
     rearrangementChain, segments = derivedSeq
