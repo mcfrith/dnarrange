@@ -712,9 +712,8 @@ def main(opts, args):
                         print(*t, sep="\t")
                 print()
 
-    txt = "wrote {0} of {1} groups\n".format(len(goodClumps), len(clumps))
     sys.stdout.flush()
-    sys.stderr.write(txt)
+    sys.stderr.write("number of groups: {0}\n".format(len(goodClumps)))
 
 if __name__ == "__main__":
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # avoid silly error message
