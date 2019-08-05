@@ -5,9 +5,6 @@ Find rearranged query sequences in query-to-reference alignments.
 
 Options:
   -h, --help            show this help message and exit
-  -m PROB, --max-mismap=PROB
-                        discard any alignment with mismap probability > PROB
-                        (default=1e-06)
   -s N, --min-seqs=N    minimum query sequences per group (default=2)
   -t LETTERS, --types=LETTERS
                         rearrangement types: C=inter-chromosome, S=inter-
@@ -20,6 +17,9 @@ Options:
                         rearrangement (default=1000)
   -c N, --min-cov=N     omit any query with any rearrangement shared by < N
                         other queries (default=0)
+  -m PROB, --max-mismap=PROB
+                        discard any alignment with mismap probability > PROB
+                        (default=1.0)
   --shrink              shrink the output
   -v, --verbose         show progress messages
 

@@ -721,9 +721,6 @@ if __name__ == "__main__":
     usage = "%prog [options] case-file(s) [: control-file(s)]"
     descr = "Find rearranged query sequences in query-to-reference alignments."
     op = optparse.OptionParser(usage=usage, description=descr)
-    op.add_option("-m", "--max-mismap", type="float", default=1e-6,
-                  metavar="PROB", help="discard any alignment with "
-                  "mismap probability > PROB (default=%default)")
     op.add_option("-s", "--min-seqs", type="int", default=2, metavar="N",
                   help="minimum query sequences per group (default=%default)")
     op.add_option("-t", "--types", metavar="LETTERS", default="CSNG", help=
@@ -741,6 +738,9 @@ if __name__ == "__main__":
     op.add_option("-c", "--min-cov", type="int", default=0, metavar="N", help=
                   "omit any query with any rearrangement shared by < N "
                   "other queries (default=%default)")
+    op.add_option("-m", "--max-mismap", type="float", default=1.0,
+                  metavar="PROB", help="discard any alignment with "
+                  "mismap probability > PROB (default=%default)")
     op.add_option("--shrink", action="count", help="shrink the output")
     op.add_option("-v", "--verbose", action="count",
                   help="show progress messages")

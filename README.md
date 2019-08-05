@@ -121,9 +121,6 @@ To make the pictures clearer, you may wish to:
 - `-h`, `--help`: show a help message, with default option values, and
   exit.
 
-- `-m PROB`, `--max-mismap=PROB`: discard any alignment with mismap
-  probability > PROB (default=1e-6).
-
 - `-s N`, `--min-seqs=N`: minimum query sequences per group
   (default=2).  A value of `0` tells it to not bother grouping: it
   will simply find rearranged query sequences.
@@ -146,6 +143,9 @@ To make the pictures clearer, you may wish to:
 
 - `-c N`, `--min-cov=N`: omit any query sequence that has any
   rearrangement shared by < N other queries (default=0).
+
+- `-m PROB`, `--max-mismap=PROB`: discard any alignment with mismap
+  probability > PROB (default=1).
 
 - `--shrink`: write the output in a compact format.  This format can
   be read by `dnarrange`.
