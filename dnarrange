@@ -45,6 +45,13 @@ def connectedComponents(adjacencyList, nodePriorities, isRev):
             yield list(connectedComponent(adjacencyList, nodePriorities,
                                           isNew, i, isRev[i]))
 
+def adjacencyListFromLinks(numOfNodes, links):
+    adjacencyList = [[] for i in range(numOfNodes)]
+    for i, j, isOpposite in links:
+        adjacencyList[i].append((j, isOpposite))
+        adjacencyList[j].append((i, isOpposite))
+    return adjacencyList
+
 def dataFromMafFields(fields):
     seqName, start, span, strand, seqLen, seq = fields[1:7]
     beg = int(start)
@@ -664,11 +671,8 @@ def main(opts, args):
 
     addOverlaps(myAlignmentsInGenomeOrder)
 
-    adjacencyList = [[] for i in alignmentsPerQuery]
     links = linksBetweenQueries(opts, alignments, alnsPerKeptQuery)
-    for qryNumA, qryNumB, isOpposite in links:
-        adjacencyList[qryNumA].append((qryNumB, isOpposite))
-        adjacencyList[qryNumB].append((qryNumA, isOpposite))
+    adjacencyList = adjacencyListFromLinks(len(alignmentsPerQuery), links)
 
     logging.info("grouping...")
     isRevStrand = [i[0][1] < 0 and i[-1][1] < 0 for i in alignmentsPerQuery]
