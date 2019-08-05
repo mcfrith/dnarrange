@@ -429,6 +429,21 @@ def linksBetweenQueries(opts, alignments, alignmentsPerQuery):
             if strand:
                 yield qryNumA, qryNumB, strand == "-"
 
+def linksBetweenClumps(alignments, alignmentsPerQuery, clumps):
+    clumpInfoPerQuery = [len(clumps)] * len(alignmentsPerQuery)
+    for clumpNum, clump in enumerate(clumps):
+        for qryNum, isFlipped in clump:
+            clumpInfoPerQuery[qryNum] = clumpNum
+    for a, clumpA in enumerate(clumps):
+        for qryNumA, isFlippedA in clumpA:
+            for alnA in alignmentsPerQuery[qryNumA]:
+                for alnNumB in alnA[7]:
+                    alnB = alignments[alnNumB]
+                    qryNumB = alnB[0]
+                    b = clumpInfoPerQuery[qryNumB]
+                    if b < len(clumps) and b != a:
+                        yield min(a, b), max(a, b), False
+
 def isOverlap(alnA, alnB):
     return alnA[3] == alnB[3] and alnA[4] < alnB[5] and alnA[5] > alnB[4]
 
@@ -587,6 +602,14 @@ def alignmentsPerKeptQuery(numOfCaseFiles, dataPerQuery, alignments):
     delOverlaps(okAlignmentsInGenomeOrder)
     return out
 
+def clumpsOfClumps(alignments, alignmentsPerQuery, clumps):
+    links = set(linksBetweenClumps(alignments, alignmentsPerQuery, clumps))
+    adjacencyList = adjacencyListFromLinks(len(clumps), links)
+    isRevStrand = [False] * len(clumps)
+    clumpPriorities = range(len(clumps))
+    for i in connectedComponents(adjacencyList, clumpPriorities, isRevStrand):
+        yield [clumps[clumpNum] for clumpNum, isFlipped in i]
+
 def wantedClumps(minNumOfFiles, fileNumsPerQuery, clumps):
     for clumpNum, clump in enumerate(clumps):
         fileNums = set(fileNumsPerQuery[qryNum] for qryNum, isFlipped in clump)
@@ -681,6 +704,8 @@ def main(opts, args):
     allClumps = connectedComponents(adjacencyList, qryPriorities, isRevStrand)
     clumps = [i for i in allClumps if len(i) >= opts.min_seqs]
     clumps.sort(key=functools.partial(clumpSortKey, alignmentsPerQuery))
+    clumpClumps = clumpsOfClumps(alignments, alignmentsPerQuery, clumps)
+    clumps = chain.from_iterable(clumpClumps)
     goodClumps = list(wantedClumps(colonPos, fileNumsPerQuery, clumps))
 
     if not opts.shrink:
