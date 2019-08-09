@@ -498,6 +498,9 @@ def clumpSortKey(alignmentsPerQuery, clump):
     k = min(querySortKey(alignmentsPerQuery[i]) for i, isFlipped in clump)
     return -len(clump), k
 
+def groupSortKey(clump):
+    return min(qryNum for qryNum, isFlipped in clump)
+
 def alignmentsInGenomeOrder(alignmentsPerQuery):
     logging.info("sorting...")
     alignments = chain.from_iterable(alignmentsPerQuery)
@@ -703,7 +706,10 @@ def main(opts, args):
                      for i, j in zip(adjacencyList, alignmentsPerQuery)]
     allClumps = connectedComponents(adjacencyList, qryPriorities, isRevStrand)
     clumps = [i for i in allClumps if len(i) >= opts.min_seqs]
-    clumps.sort(key=functools.partial(clumpSortKey, alignmentsPerQuery))
+    sortKey = functools.partial(clumpSortKey, alignmentsPerQuery)
+    if all(i.startswith("group") for i in queryNames):
+        sortKey = groupSortKey
+    clumps.sort(key=sortKey)
     clumpClumps = clumpsOfClumps(alignments, alignmentsPerQuery, clumps)
     clumps = chain.from_iterable(clumpClumps)
     goodClumps = list(wantedClumps(colonPos, fileNumsPerQuery, clumps))
@@ -751,6 +757,9 @@ if __name__ == "__main__":
     op = optparse.OptionParser(usage=usage, description=descr)
     op.add_option("-s", "--min-seqs", type="int", default=2, metavar="N",
                   help="minimum query sequences per group (default=%default)")
+    op.add_option("-c", "--min-cov", type="int", default=0, metavar="N", help=
+                  "omit any query with any rearrangement shared by < N "
+                  "other queries (default=%default)")
     op.add_option("-t", "--types", metavar="LETTERS", default="CSNG", help=
                   "rearrangement types: C=inter-chromosome, S=inter-strand, "
                   "N=non-colinear, G=big gap (default=%default)")
@@ -763,9 +772,6 @@ if __name__ == "__main__":
     op.add_option("-d", "--max-diff", type="float", default=1000, metavar="BP",
                   help="maximum query-length difference for "
                   "shared rearrangement (default=%default)")
-    op.add_option("-c", "--min-cov", type="int", default=0, metavar="N", help=
-                  "omit any query with any rearrangement shared by < N "
-                  "other queries (default=%default)")
     op.add_option("-m", "--max-mismap", type="float", default=1.0,
                   metavar="PROB", help="discard any alignment with "
                   "mismap probability > PROB (default=%default)")

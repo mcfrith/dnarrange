@@ -7,9 +7,8 @@ to a genome sequence.
 
 You can use [this
 recipe](https://github.com/mcfrith/last-rna/blob/master/last-long-reads.md).
-
-* You can use `last-split` `-fMAF`, to reduce the file size, with no
-  effect on the following steps.
+(You can use `last-split` `-fMAF`, to reduce the file size, with no
+effect on the following steps.)
 
 ### Step 2: Find rearrangements
 
@@ -48,21 +47,47 @@ in a new directory `group-pics`:
 
 `last-multiplot` has the same
 [options](http://last.cbrc.jp/doc/last-dotplot.html) as
-`last-dotplot`.
+`last-dotplot`.  In fact, `last-multiplot` uses `last-dotplot`, so it
+requires the latter to be
+[installed](http://last.cbrc.jp/doc/last.html) (i.e. in your PATH).
+This in turn requires the [Python Imaging
+Library](https://pillow.readthedocs.io/) to be installed.
 
-In fact, `last-multiplot` uses `last-dotplot`, so it requires the
-latter to be [installed](http://last.cbrc.jp/doc/last.html) (i.e. in
-your PATH).  This in turn requires the [Python Imaging
-Library](https://pillow.readthedocs.io/) to be installed (good luck
-with that).
+* A useful option is `--rmsk1`, to show repeats, which often cause
+  rearrangements.
 
-### Step 4: Check and (if necessary) hand-edit the groups
+Tips for viewing the pictures on a Mac: open the folder in Finder, and
 
-The step after this infers how the groups are linked, but it uses only
-the topmost read in each group.  So we need to ensure that the topmost
-read represents the whole group, and covers all the group's
-rearrangement breakpoints.  We can check this by looking at the
-pictures.
+* View the pictures with "Cover Flow" (Command+4), or:
+* Select all the pictures (Command+A), and view them in slideshow
+  (Option+Spacebar) or "Quick Look" (Spacebar).  Use the left and
+  right arrows to move between pictures.  In slideshow, Spacebar
+  toggles "pause"/"play".
+
+Try to check for bad groups, e.g. rearrangements that look like
+sequencing artifacts.  It may be useful to define the groups more
+strictly, with `-s3` (minimum 3 reads per group) and/or `-c1` (discard
+any read with any rearrangement not shared by 1 other read):
+
+    dnarrange -s3 -c1 groups.maf > strict.maf
+
+### Step 4: Find the order and orientation of groups
+
+A large rearrangement might include several groups of rearranged
+reads.  To understand it, we need to know the order and orientation of
+the groups in the rearranged sequence:
+
+    dnarrange-link -g3,7,8,12 groups.maf > linked.txt
+
+This tells it to use groups 3, 7, 8, and 12.  (If you don't specify
+any groups, it will use them all: ideally that would work, but the
+groups may not all be perfectly accurate, complete, and
+uniquely-linkable.)
+
+It uses only the topmost read in each group, so we need to ensure that
+the topmost read represents the whole group, and covers all the
+group's rearrangement breakpoints.  We can check this by looking at
+the pictures.
 
 If necessary, we can hand edit `groups.maf`.  This file begins with a
 summary of each group, like this:
@@ -71,34 +96,22 @@ summary of each group, like this:
     # readA+ chr19:17558023>17557054 chr18:23830954<23831466
     # readB- chr19:17558023>17557056 chr18:23830970<23831547
 
-This shows how each read aligns to the genome.  We can edit the
-summary, e.g.  move another read to the top of the group, or create a
-fake topmost read with all the breakpoints.
+This shows how each read aligns to the genome.  `dnarrange-link` uses
+only the group names and topmost reads from the summary.
 
-It may be useful to "clean" the groups like this:
-
-    dnarrange -c1 groups.maf > clean-groups.maf
-
-This discards any read with a rearrangement not shared by any other
-read.
-
-### Step 5: Reconstruct the rearranged chromsomes
-
-    dnarrange-link groups.maf > linked.txt
-
-You might get a warning message like this:
+`dnarrange-link` may show a warning message like this:
 
     WARNING: 256 equally-good ways of linking ends in chr8
 
-In this case, `dnarrange-link` arbitrarily picks one of these
-ways to link the ends in chr8.
+In this case, it arbitrarily picks one of these ways to link the ends
+in chr8.
 
-The reconstructed chromosomes are given names like `der1`, `der2`.  If
-a reconstructed chromosome has widely-separated rearrangements, it's
-broken into parts like `der2a`, `der2b`.  You can control this
-breaking with option `-m` (see `dnarrange-link --help`).
+The output has reconstructed chromosomes with names like `der1`,
+`der2`.  If a reconstructed chromosome has widely-separated
+rearrangements, it's broken into parts like `der2a`, `der2b`.  You can
+control this breaking with option `-m` (see `dnarrange-link --help`).
 
-### Step 6: Draw pictures of the rearranged chromosomes
+### Step 5: Draw pictures of the rearranged chromosomes
 
     last-multiplot linked.txt linked-pics
 
@@ -125,6 +138,9 @@ To make the pictures clearer, you may wish to:
   (default=2).  A value of `0` tells it to not bother grouping: it
   will simply find rearranged query sequences.
 
+- `-c N`, `--min-cov=N`: omit any query sequence that has any
+  rearrangement shared by < N other queries (default=0).
+
 - `-t LETTERS`, `--types=LETTERS`: rearrangement types:
   C=inter-chromosome, S=inter-strand, N=non-colinear, G=big gap
   (default=CSNG).
@@ -141,9 +157,6 @@ To make the pictures clearer, you may wish to:
 - `-d BP`, `--max-diff=BP`: maximum query-length difference for shared
   rearrangement (default=1000).
 
-- `-c N`, `--min-cov=N`: omit any query sequence that has any
-  rearrangement shared by < N other queries (default=0).
-
 - `-m PROB`, `--max-mismap=PROB`: discard any alignment with mismap
   probability > PROB (default=1).
 
@@ -151,14 +164,3 @@ To make the pictures clearer, you may wish to:
   be read by `dnarrange`.
 
 - `-v`, `--verbose`: show progress messages.
-
-## Tips for viewing the pictures
-
-On a Mac, open the folder in Finder, and:
-
-* View the pictures with "Cover Flow" (Command+4), or:
-
-* Select all the pictures (Command+A), and view them in slideshow
-  (Option+Spacebar) or "Quick Look" (Spacebar).  Use the left and
-  right arrows to move between pictures.  In slideshow, Spacebar
-  toggles "pause"/"play".

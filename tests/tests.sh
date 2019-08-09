@@ -43,7 +43,7 @@ PATH=..:$PATH
 
     try dnarrange -c1 alns.txt
 
-    try dnarrange-link alns-summary.txt
+    try dnarrange-link -g3,6 alns-summary.txt
     try dnarrange-link -m1e9 alns-summary.txt
     try dnarrange-link -v alns-summary.txt
 } 2>&1 |
