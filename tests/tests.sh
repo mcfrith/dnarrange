@@ -38,6 +38,7 @@ PATH=..:$PATH
     try dnarrange -g11 alns.tab
 
     try dnarrange --shrink -s1 -r1 -g40 alns.maf
+    try dnarrange --shrink -c1 -s1 -r1 -g40 alns.maf
 
     try dnarrange --shrink -s0 -r1 -g40 alns.maf
 

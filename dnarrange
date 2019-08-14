@@ -498,8 +498,16 @@ def clumpSortKey(alignmentsPerQuery, clump):
     k = min(querySortKey(alignmentsPerQuery[i]) for i, isFlipped in clump)
     return -len(clump), k
 
-def groupSortKey(clump):
-    return min(qryNum for qryNum, isFlipped in clump)
+def isGroupName(qryName):
+    x = qryName.split("-")[0]
+    return x.startswith("group") and x[5:].isdigit()
+
+def groupNameSortKey(groupName):
+    x = groupName.split("-")[0]
+    return int(x[5:])
+
+def groupSortKey(queryNames, clump):
+    return min(groupNameSortKey(queryNames[qryNum]) for qryNum, junk in clump)
 
 def alignmentsInGenomeOrder(alignmentsPerQuery):
     logging.info("sorting...")
@@ -706,9 +714,11 @@ def main(opts, args):
                      for i, j in zip(adjacencyList, alignmentsPerQuery)]
     allClumps = connectedComponents(adjacencyList, qryPriorities, isRevStrand)
     clumps = [i for i in allClumps if len(i) >= opts.min_seqs]
+    keptQueryNums = set(i[0][0] for i in alnsPerKeptQuery)
+    clumps = [i for i in clumps if i[0][0] in keptQueryNums]
     sortKey = functools.partial(clumpSortKey, alignmentsPerQuery)
-    if all(i.startswith("group") for i in queryNames):
-        sortKey = groupSortKey
+    if all(map(isGroupName, queryNames)):
+        sortKey = functools.partial(groupSortKey, queryNames)
     clumps.sort(key=sortKey)
     clumpClumps = clumpsOfClumps(alignments, alignmentsPerQuery, clumps)
     clumps = chain.from_iterable(clumpClumps)
