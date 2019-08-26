@@ -71,25 +71,58 @@ any read with any rearrangement not shared by 1 other read):
 
     dnarrange -s3 -c1 groups.maf > strict.maf
 
-### Step 4: Find the order and orientation of groups
+### Step 4: Merge each group into a consensus sequence
+
+    dnarrange-merge reads.fq myseq.par groups.maf > merged.fa
+
+This uses 3 input files: the read sequences (in fastq or fasta
+format), `myseq.par` from the alignment step, and the groups.  It
+requires [lamassemble][] to be installed (which in turn requires LAST
+and [MAFFT][] to be installed).
+
+Then
+re-[align](https://github.com/mcfrith/last-rna/blob/master/last-long-reads.md)
+the merged reads to the genome (it's recommended to do this without
+repeat-masking):
+
+    lastdb -P8 -uNEAR -R01 mydb genome.fa
+    last-train -P8 mydb merged.fa > merged.par
+    lastal -P8 -p merged.par mydb merged.fa | last-split -m1 > merged.maf
+
+And draw pictures:
+
+    dnarrange -s1 merged.maf > final.maf
+    last-multiplot final.maf merged-pics
+
+`dnarrange` may omit some consensus sequences, if it doesn't consider
+their alignments to be rearranged.  If this is a problem, try reducing
+`dnarrange`'s minimum thresholds for rearrangement, e.g. with option
+`-r1`.
+
+Merging doesn't always work well, especially if the reads have large
+tandem duplications so it's easy to merge the wrong parts of the
+reads.  Try to check this by comparing the merged and unmerged
+pictures.
+
+### Step 5: Find the order and orientation of groups
 
 A large rearrangement might include several groups of rearranged
 reads.  To understand it, we need to know the order and orientation of
 the groups in the rearranged sequence:
 
-    dnarrange-link -g3,7,8,12 groups.maf > linked.txt
+    dnarrange-link -g3,7,8,12 final.maf > linked.txt
 
 This tells it to use groups 3, 7, 8, and 12.  (If you don't specify
 any groups, it will use them all: ideally that would work, but the
 groups may not all be perfectly accurate, complete, and
 uniquely-linkable.)
 
-It uses only the topmost read in each group, so we need to ensure that
-the topmost read represents the whole group, and covers all the
-group's rearrangement breakpoints.  We can check this by looking at
-the pictures.
+You can give it groups before or after merging.  It uses only the
+topmost read in each group, so we need to ensure that the topmost read
+represents the whole group, and covers all the group's rearrangement
+breakpoints.  We can check this by looking at the pictures.
 
-If necessary, we can hand edit `groups.maf`.  This file begins with a
+If necessary, we can hand-edit the input file.  It begins with a
 summary of each group, like this:
 
     # group7-2
@@ -111,7 +144,7 @@ The output has reconstructed chromosomes with names like `der1`,
 rearrangements, it's broken into parts like `der2a`, `der2b`.  You can
 control this breaking with option `-m` (see `dnarrange-link --help`).
 
-### Step 5: Draw pictures of the rearranged chromosomes
+### Step 6: Draw pictures of the rearranged chromosomes
 
     last-multiplot linked.txt linked-pics
 
@@ -164,3 +197,6 @@ To make the pictures clearer, you may wish to:
   be read by `dnarrange`.
 
 - `-v`, `--verbose`: show progress messages.
+
+[MAFFT]: https://mafft.cbrc.jp/alignment/software/
+[lamassemble]: https://gitlab.com/mcfrith/lamassemble
