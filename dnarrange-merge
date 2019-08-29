@@ -43,18 +43,24 @@ def seqGroupsFromFile(lines):
                 seqNamesToGroupNums[seqName] = len(seqGroups) - 1
     return seqGroups, seqNamesToGroupNums
 
-def main(opts, seqFile, trainFile, groupFile):
+def main(opts, args):
     logLevel = logging.INFO if opts.verbose else logging.WARNING
     logging.basicConfig(format="%(filename)s: %(message)s", level=logLevel)
 
-    seqGroups, seqNamesToGroupNums = seqGroupsFromFile(openFile(groupFile))
+    seqGroups, seqNamesToGroupNums = seqGroupsFromFile(openFile(args[-1]))
 
-    for seqLines in fastxInput(openFile(seqFile)):
+    for seqLines in fastxInput(openFile(args[0])):
         seqName = seqLines[0][1:].split()[0]
         if seqName in seqNamesToGroupNums:
+            if len(args) == 2:
+                print(*seqLines, sep="", end="")
+                continue
             groupNum = seqNamesToGroupNums[seqName]
             groupName, seqs = seqGroups[groupNum]
             seqs.append(seqLines)
+
+    if len(args) == 2:
+        return
 
     for groupName, seqs in seqGroups:
         cmd = ["lamassemble", "-n" + groupName]
@@ -66,7 +72,7 @@ def main(opts, seqFile, trainFile, groupFile):
         cmd.append("-W" + str(opts.W))
         cmd.append("-m" + str(opts.m))
         cmd.append("-z" + str(opts.z))
-        cmd += [trainFile, "-"]
+        cmd += [args[1], "-"]
         logging.info(" ".join(cmd))
         proc = subprocess.Popen(cmd, stdin=subprocess.PIPE,
                                 universal_newlines=True)
@@ -78,7 +84,8 @@ def main(opts, seqFile, trainFile, groupFile):
 
 if __name__ == "__main__":
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # avoid silly error message
-    usage = "%prog [options] sequences.fx last-train.out groups.maf > out.fa"
+    usage = """%prog [options] sequences.fx last-train.out groups.maf > out.fa
+   or: %prog sequences.fx groups.maf > unmerged-sequences.fx"""
     descr = "Merge DNA sequences of each group into a consensus sequence."
     op = optparse.OptionParser(usage=usage, description=descr)
     op.add_option("-g", "--gap-max", metavar="G", type="float", default=50,
@@ -102,7 +109,7 @@ if __name__ == "__main__":
     op.add_option_group(og)
 
     opts, args = op.parse_args()
-    if len(args) == 3:
-        main(opts, *args)
+    if len(args) in (2, 3):
+        main(opts, args)
     else:
         op.print_help()

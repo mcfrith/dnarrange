@@ -326,7 +326,7 @@ def isNonlinearPair(opts, alnX, alnY):
         return "C" in opts.types and isDifferentChromosomes(alnX[3], alnY[3])
     if not isSameQueryStrand(alnX, alnY):
         return "S" in opts.types
-    if alnX[1] < alnY[1]:        
+    if alnX[1] < alnY[1]:
         gap = alnY[4] - alnX[5]
     else:
         gap = alnX[4] - alnY[5]
@@ -449,13 +449,15 @@ def isOverlap(alnA, alnB):
 
 def prevAlignment(alignments, thisAlignment):
     alnNum = thisAlignment[6]
-    if alnNum == 0: return None
+    if alnNum == 0:
+        return None
     a = alignments[alnNum - 1]
     return a if a[0] == thisAlignment[0] else None
 
 def nextAlignment(alignments, thisAlignment):
     alnNum = thisAlignment[6]
-    if alnNum == len(alignments) - 1: return None
+    if alnNum == len(alignments) - 1:
+        return None
     a = alignments[alnNum + 1]
     return a if a[0] == thisAlignment[0] else None
 
@@ -539,7 +541,7 @@ def qryNameWithStrand(qryName, isFlipped):
     return newQryName, isAddChar
 
 def printMaf(lines, isFlipped):
-    lines = [re.split("(\s+)", i, 5) for i in lines]
+    lines = [re.split(r"(\s+)", i, 5) for i in lines]
     sLines = [i for i in lines if i[0] == "s"]
     qryLine = sLines[-1]
     qryName = qryLine[2]

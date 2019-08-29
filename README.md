@@ -198,5 +198,18 @@ To make the pictures clearer, you may wish to:
 
 - `-v`, `--verbose`: show progress messages.
 
+## `dnarrange-merge` options
+
+You can get the rearranged reads, without merging them, like this:
+
+    dnarrange-merge all-reads.fq groups.maf > some-reads.fq
+
+This may be useful if you wish to re-align the rearranged reads to the
+genome more slowly-and-carefully (e.g. without repeat-masking).
+
+`dnarrange-merge` also has options that it passes to `lamassemble`:
+you can see them with `dnarrange-merge --help`, and they're described
+at the [lamassemble] site.
+
 [MAFFT]: https://mafft.cbrc.jp/alignment/software/
 [lamassemble]: https://gitlab.com/mcfrith/lamassemble
