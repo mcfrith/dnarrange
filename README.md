@@ -162,6 +162,18 @@ To make the pictures clearer, you may wish to:
 * Hand-edit `linked.txt`, to lengthen the topmost and bottommost
   segments of a derived chromosome.
 
+## Public control files
+
+You can use these [control files](https://zenodo.org/record/3445550)
+to discard common rearrangements.  They were made with human reference
+genome version `hg38`, so *you must use the same reference!* They were
+"shrunk" with commands like:
+
+    dnarrange --shrink -s0 -r1 -g100 control.maf > control.txt
+
+They won't be fully effective if you use them with option `-g` < 100
+(or non-default `-m`).
+
 ## `dnarrange` options
 
 - `-h`, `--help`: show a help message, with default option values, and
