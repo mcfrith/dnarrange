@@ -1,0 +1,2 @@
+setup.py export-subst
+tests/ export-ignore
