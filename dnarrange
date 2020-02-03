@@ -501,13 +501,14 @@ def clumpSortKey(alignmentsPerQuery, clump):
     k = min(querySortKey(alignmentsPerQuery[i]) for i, isFlipped in clump)
     return -len(clump), k
 
-def isGroupName(qryName):
-    x = qryName.split("-")[0]
-    return x.startswith("group") and x[5:].isdigit()
+def isMergedGroupName(qryName):
+    return re.match(r"(group|merged?)\d+-", qryName)
 
-def groupNameSortKey(groupName):
-    x = groupName.split("-")[0]
-    return int(x[5:])
+def groupIdFromName(mergedGroupName):
+    return re.search(r"\d+", mergedGroupName).group()
+
+def groupNameSortKey(mergedGroupName):
+    return int(groupIdFromName(mergedGroupName))
 
 def groupSortKey(queryNames, clump):
     return min(groupNameSortKey(queryNames[qryNum]) for qryNum, junk in clump)
@@ -719,8 +720,9 @@ def main(opts, args):
     clumps = [i for i in allClumps if len(i) >= opts.min_seqs]
     keptQueryNums = set(i[0][0] for i in alnsPerKeptQuery)
     clumps = [i for i in clumps if i[0][0] in keptQueryNums]
+    isEachQueryOneMergedGroup = all(map(isMergedGroupName, queryNames))
     sortKey = functools.partial(clumpSortKey, alignmentsPerQuery)
-    if all(map(isGroupName, queryNames)):
+    if isEachQueryOneMergedGroup:
         sortKey = functools.partial(groupSortKey, queryNames)
     clumps.sort(key=sortKey)
     clumpClumps = clumpsOfClumps(alignments, alignmentsPerQuery, clumps)

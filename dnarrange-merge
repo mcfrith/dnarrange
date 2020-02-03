@@ -64,7 +64,8 @@ def main(opts, args):
         return
 
     for groupName, seqs in seqGroups:
-        cmd = ["lamassemble", "-n" + groupName]
+        mergedSequenceName = groupName.replace("group", "merge")
+        cmd = ["lamassemble", "-n" + mergedSequenceName]
         cmd.append("-g" + str(opts.gap_max))
         cmd.append("-p" + str(opts.prob))
         if opts.verbose:
