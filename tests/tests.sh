@@ -47,5 +47,8 @@ PATH=..:$PATH
     try dnarrange-link -g3,6 alns-summary.txt
     try dnarrange-link -m1e9 alns-summary.txt
     try dnarrange-link -v alns-summary.txt
+
+    try dnarrange-genes refFlat.txt alns-c1-top.maf
+    try dnarrange-genes -d5000 refFlat.txt alns-c1-top.maf
 } 2>&1 |
 diff -u $(basename $0 .sh).out -

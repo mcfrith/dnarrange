@@ -174,6 +174,19 @@ genome version `hg38`, so *you must use the same reference!* They were
 They won't be fully effective if you use them with option `-g` < 100
 (or non-default `-m`).
 
+## `dnarrange-genes`
+
+This is a simple script to find genes at or near rearrangement
+breakpoints:
+
+    dnarrange-genes refGene.txt groups.maf > groups.txt
+
+You can give it genes in these formats: refGene.txt, refFlat.txt,
+[BED][].  You can make it find genes up to, say, 5000 base-pairs away
+from any breakpoint like this:
+
+    dnarrange-genes -d5000 refGene.txt groups.maf > groups.txt
+
 ## `dnarrange` options
 
 - `-h`, `--help`: show a help message, with default option values, and
@@ -223,5 +236,6 @@ genome more slowly-and-carefully (e.g. without repeat-masking).
 you can see them with `dnarrange-merge --help`, and they're described
 at the [lamassemble] site.
 
+[BED]: https://genome.ucsc.edu/FAQ/FAQformat.html#format1
 [MAFFT]: https://mafft.cbrc.jp/alignment/software/
 [lamassemble]: https://gitlab.com/mcfrith/lamassemble

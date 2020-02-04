@@ -1787,3 +1787,15 @@ chr29	37964408	<	37966684
 chr28	30473104	<	30476840
 
 
+TEST dnarrange-genes refFlat.txt alns-c1-top.maf
+group1-3	WASH2P,WASH8P
+group3-2	COLGALT1,LAMA3
+group4-2	OSBPL1A
+group6-2	SIPA1L3
+
+TEST dnarrange-genes -d5000 refFlat.txt alns-c1-top.maf
+group1-3	FAM138B,MIR1302-3,WASH2P,WASH8P
+group3-2	COLGALT1,LAMA3
+group4-2	OSBPL1A
+group6-2	SIPA1L3
+
