@@ -625,12 +625,23 @@ def clumpsOfClumps(alignments, alignmentsPerQuery, clumps):
     for i in connectedComponents(adjacencyList, clumpPriorities, isRevStrand):
         yield [clumps[clumpNum] for clumpNum, isFlipped in i]
 
+def namedClumps(queryNames, isEachQueryOneMergedGroup, clumps):
+    if isEachQueryOneMergedGroup:
+        for clump in clumps:
+            name = "merge" + "_".join(groupIdFromName(queryNames[qryNum])
+                                      for qryNum, junk in clump)
+            yield name, clump
+    else:
+        for i, clump in enumerate(clumps):
+            name = "group{0}-{1}".format(i + 1, len(clump))
+            yield name, clump
+
 def wantedClumps(minNumOfFiles, fileNumsPerQuery, clumps):
-    for clumpNum, clump in enumerate(clumps):
+    for i in clumps:
+        clumpName, clump = i
         fileNums = set(fileNumsPerQuery[qryNum] for qryNum, isFlipped in clump)
         if len(fileNums) >= minNumOfFiles:
-            clumpName = "group{0}-{1}".format(clumpNum + 1, len(clump))
-            yield clumpName, clump
+            yield i
 
 def flippedAlignment(alignment, isFlipped):
     qryNum, qryBeg, qryEnd, refName, refBeg, refEnd = alignment[:6]
@@ -727,6 +738,7 @@ def main(opts, args):
     clumps.sort(key=sortKey)
     clumpClumps = clumpsOfClumps(alignments, alignmentsPerQuery, clumps)
     clumps = chain.from_iterable(clumpClumps)
+    clumps = namedClumps(queryNames, isEachQueryOneMergedGroup, clumps)
     goodClumps = list(wantedClumps(colonPos, fileNumsPerQuery, clumps))
 
     if not opts.shrink:
