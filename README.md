@@ -65,11 +65,10 @@ Tips for viewing the pictures on a Mac: open the folder in Finder, and
   toggles "pause"/"play".
 
 Try to check for bad groups, e.g. rearrangements that look like
-sequencing artifacts.  It may be useful to define the groups more
-strictly, with `-s3` (minimum 3 reads per group) and/or `-c1` (discard
-any read with any rearrangement not shared by 1 other read):
+sequencing artifacts.  It may be useful to require at least 3 (instead
+of 2) reads per group:
 
-    dnarrange -s3 -c1 groups.maf > strict.maf
+    dnarrange -s3 groups.maf > strict.maf
 
 ### Step 4: Merge each group into a consensus sequence
 
@@ -197,7 +196,8 @@ from any breakpoint like this:
   will simply find rearranged query sequences.
 
 - `-c N`, `--min-cov=N`: omit any query sequence that has any
-  rearrangement shared by < N other queries (default=0).
+  rearrangement shared by < N other queries.  The default depends on
+  the `-s` option: when s>1, the default is 1, else the default is 0.
 
 - `-t LETTERS`, `--types=LETTERS`: rearrangement types:
   C=inter-chromosome, S=inter-strand, N=non-colinear, G=big gap

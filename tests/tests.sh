@@ -13,9 +13,9 @@ PATH=..:$PATH
 {
     try dnarrange --help
 
-    try dnarrange -c1 alns.maf
+    try dnarrange alns.maf
 
-    try dnarrange -s4 alns.maf
+    try dnarrange -s4 -c0 alns.maf
 
     try dnarrange -tCG -c1 alns.maf
 
@@ -25,24 +25,24 @@ PATH=..:$PATH
 
     try dnarrange -s1 mito.maf
 
-    try dnarrange -s4 alns.maf : mito.maf
+    try dnarrange -s4 -c0 alns.maf : mito.maf
 
     try dnarrange -tG -g11 -s1 mito.maf
 
     try dnarrange -s3 -c1 alns.maf : neg.maf
 
-    try dnarrange -s3 alns.maf neg.maf
+    try dnarrange -s3 -c0 alns.maf neg.maf
 
-    try dnarrange -d200 -s3 -tC alns.maf
+    try dnarrange -d200 -s3 -tC -c0 alns.maf
 
-    try dnarrange -g11 alns.tab
+    try dnarrange -g11 -c0 alns.tab
 
     try dnarrange --shrink -s1 -r1 -g40 alns.maf
     try dnarrange --shrink -c1 -s1 -r1 -g40 alns.maf
 
     try dnarrange --shrink -s0 -r1 -g40 alns.maf
 
-    try dnarrange -c1 alns.txt
+    try dnarrange alns.txt
 
     try dnarrange -s1 merged.maf
 

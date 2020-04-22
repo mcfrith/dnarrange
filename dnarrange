@@ -784,9 +784,9 @@ if __name__ == "__main__":
     op = optparse.OptionParser(usage=usage, description=descr)
     op.add_option("-s", "--min-seqs", type="int", default=2, metavar="N",
                   help="minimum query sequences per group (default=%default)")
-    op.add_option("-c", "--min-cov", type="int", default=0, metavar="N", help=
+    op.add_option("-c", "--min-cov", type="int", metavar="N", help=
                   "omit any query with any rearrangement shared by < N "
-                  "other queries (default=%default)")
+                  "other queries (default: 1 if s>1, else 0)")
     op.add_option("-t", "--types", metavar="LETTERS", default="CSNG", help=
                   "rearrangement types: C=inter-chromosome, S=inter-strand, "
                   "N=non-colinear, G=big gap (default=%default)")
@@ -806,4 +806,6 @@ if __name__ == "__main__":
     op.add_option("-v", "--verbose", action="count",
                   help="show progress messages")
     opts, args = op.parse_args()
+    if opts.min_cov is None:
+        opts.min_cov = 1 if opts.min_seqs > 1 else 0
     main(opts, args)

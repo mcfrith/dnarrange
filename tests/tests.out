@@ -7,7 +7,7 @@ Options:
   -h, --help            show this help message and exit
   -s N, --min-seqs=N    minimum query sequences per group (default=2)
   -c N, --min-cov=N     omit any query with any rearrangement shared by < N
-                        other queries (default=0)
+                        other queries (default: 1 if s>1, else 0)
   -t LETTERS, --types=LETTERS
                         rearrangement types: C=inter-chromosome, S=inter-
                         strand, N=non-colinear, G=big gap (default=CSNG)
@@ -23,8 +23,8 @@ Options:
   --shrink              shrink the output
   -v, --verbose         show progress messages
 
-TEST dnarrange -c1 alns.maf
-# dnarrange -c1 alns.maf
+TEST dnarrange alns.maf
+# dnarrange alns.maf
 
 # group1-3
 # 22367894+ chr12:11090<18271 chr2:113592597>113580021 chr9:38962<47763
@@ -276,8 +276,8 @@ s c46c5068- 16 1149 + 5583 GAGAAAATTTCTTTGTAGGAAACACAACG-TGATGAGAATTATCTACAAGCTA
 
 number of groups: 6
 
-TEST dnarrange -s4 alns.maf
-# dnarrange -s4 alns.maf
+TEST dnarrange -s4 -c0 alns.maf
+# dnarrange -s4 -c0 alns.maf
 
 # group1-4
 # 22367894+ chr12:11090<18271 chr2:113592597>113580021 chr9:38962<47763
@@ -655,8 +655,8 @@ TEST dnarrange -s1 mito.maf
 
 number of groups: 0
 
-TEST dnarrange -s4 alns.maf : mito.maf
-# dnarrange -s4 alns.maf : mito.maf
+TEST dnarrange -s4 -c0 alns.maf : mito.maf
+# dnarrange -s4 -c0 alns.maf : mito.maf
 
 # group1-4
 # 22367894+ chr12:11090<18271 chr2:113592597>113580021 chr9:38962<47763
@@ -790,8 +790,8 @@ s f7636412- 1738 7619 + 18011 TAACCCT--CTCAACCCTTCAACCTT---CCTAACCCTAACTCCAGAATC
 
 number of groups: 1
 
-TEST dnarrange -s3 alns.maf neg.maf
-# dnarrange -s3 alns.maf neg.maf
+TEST dnarrange -s3 -c0 alns.maf neg.maf
+# dnarrange -s3 -c0 alns.maf neg.maf
 
 # group2-4
 # 49af0da4+ chr12:17844130<17860021 chr12:17769909>17739200
@@ -903,8 +903,8 @@ s 101f33d6- 5779 1414 + 57951 AATTT-TATAAGTGAATC-CTATT-TCATCAGCATATTACATTTTTCCCT
 
 number of groups: 1
 
-TEST dnarrange -d200 -s3 -tC alns.maf
-# dnarrange -d200 -s3 -tC alns.maf
+TEST dnarrange -d200 -s3 -tC -c0 alns.maf
+# dnarrange -d200 -s3 -tC -c0 alns.maf
 
 # group1-3
 # 22367894+ chr12:11090<18271 chr2:113592597>113580021 chr9:38962<47763
@@ -954,8 +954,8 @@ s f7636412- 1738 7619 + 18011 TAACCCT--CTCAACCCTTCAACCTT---CCTAACCCTAACTCCAGAATC
 
 number of groups: 1
 
-TEST dnarrange -g11 alns.tab
-# dnarrange -g11 alns.tab
+TEST dnarrange -g11 -c0 alns.tab
+# dnarrange -g11 -c0 alns.tab
 
 # group1-4
 # 22367894+ chr12:11090<11254 chr12:11265<13318 chr12:13329<13618
@@ -1534,8 +1534,8 @@ TEST dnarrange --shrink -s0 -r1 -g40 alns.maf
 19	9786	-38	315
 
 
-TEST dnarrange -c1 alns.txt
-# dnarrange -c1 alns.txt
+TEST dnarrange alns.txt
+# dnarrange alns.txt
 
 # group1-3
 # 4+ chr12:11090<18271 chr2:113592597>113580021 chr9:38962<47763
