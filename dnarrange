@@ -220,11 +220,16 @@ def isBigGap(sortedAlignmentsOfOneQuery, opts):
                     return True
     return False
 
-def isRearranged(opts, alignmentsOfOneQuery):
-    return ("C" in opts.types and isInterChromosome(alignmentsOfOneQuery) or
-            "S" in opts.types and isInterStrand(alignmentsOfOneQuery) or
-            "N" in opts.types and isNonlinear(alignmentsOfOneQuery, opts) or
-            "G" in opts.types and isBigGap(alignmentsOfOneQuery, opts))
+def rearrangementType(opts, alignmentsOfOneQuery):
+    if "C" in opts.types and isInterChromosome(alignmentsOfOneQuery):
+        return "C"
+    if "S" in opts.types and isInterStrand(alignmentsOfOneQuery):
+        return "S"
+    if "N" in opts.types and isNonlinear(alignmentsOfOneQuery, opts):
+        return "N"
+    if "G" in opts.types and isBigGap(alignmentsOfOneQuery, opts):
+        return "G"
+    return None
 
 def qryFwdAlns(alignmentGroup):
     for qryName, qryLen, refName, alns, junk in alignmentGroup:
@@ -251,13 +256,14 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
             qryName, qryLen = key
             group = list(group)
             alignmentsOfOneQuery = sorted(qryFwdAlns(group))
-            if isRearranged(opts, alignmentsOfOneQuery):
+            rType = rearrangementType(opts, alignmentsOfOneQuery)
+            if rType:
                 newAlns = []
                 for i in alignmentsOfOneQuery:
                     newAlns.append(newAlnFromOldAln(i, qryNum, alnNum))
                     alnNum += 1
                 alignmentTexts = [i[4] for i in group]
-                yield newAlns, alignmentTexts, fileNum + 1, qryName
+                yield newAlns, alignmentTexts, fileNum + 1, qryName, rType
                 qryNum += 1
 
 def alignedQueryLength(alignmentsOfOneQuery):
