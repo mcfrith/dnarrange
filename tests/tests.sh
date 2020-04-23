@@ -46,6 +46,9 @@ PATH=..:$PATH
 
     try dnarrange -s1 merged.maf
 
+    try dnarrange -f0 -g60 -s3 -c0 alns.maf : neg2.maf
+    try dnarrange -f1 -g60 -s3 -c0 alns.maf : neg2.maf
+
     try dnarrange-link -g3,6 alns-summary.txt
     try dnarrange-link -m1e9 alns-summary.txt
     try dnarrange-link -v alns-summary.txt

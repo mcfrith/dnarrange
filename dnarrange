@@ -419,8 +419,8 @@ def sharedRearrangement(opts, types, alignments, overlapsBetweenTwoQueries):
                         return "-+"[isSameStrand]
     return None
 
-def isNoSharedRearrangement(opts, alignments, alignmentsOfOneOkQuery):
-    types = opts.types
+def isNoSharedRearrangement(opts, alignments, alignmentsOfOneOkQuery, rType):
+    types = rType if opts.filter > 0 else opts.types
     overlaps = sorted(overlapsOfOneQuery(alignments, alignmentsOfOneOkQuery))
     for qryNumB, g in groupby(overlaps, itemgetter(0)):
         if sharedRearrangement(opts, types, alignments, g):
@@ -616,11 +616,13 @@ def alignmentsPerKeptQuery(numOfCaseFiles, dataPerQuery, alignments):
     ngAlns = [i[0] for i in dataPerQuery if i[2] > numOfCaseFiles]
     if not ngAlns:
         return okAlns
+    okTypes = [i[4] for i in dataPerQuery if i[2] <= numOfCaseFiles]
     okAlignmentsInGenomeOrder = alignmentsInGenomeOrder(okAlns)
     ngAlignmentsInGenomeOrder = alignmentsInGenomeOrder(ngAlns)
     addNgOverlaps(okAlignmentsInGenomeOrder, ngAlignmentsInGenomeOrder)
     logging.info("excluding...")
-    out = [i for i in okAlns if isNoSharedRearrangement(opts, alignments, i)]
+    z = zip(okAlns, okTypes)
+    out = [i for i, j in z if isNoSharedRearrangement(opts, alignments, i, j)]
     delOverlaps(okAlignmentsInGenomeOrder)
     return out
 
@@ -803,6 +805,9 @@ if __name__ == "__main__":
     op.add_option("-r", "--min-rev", type="float", default=1000, metavar="BP",
                   help='minimum reverse jump in the reference sequence '
                   'counted as "non-colinear" (default=%default)')
+    op.add_option("-f", "--filter", type="int", default=1, metavar="N",
+                  help='discard case reads sharing any (0) or "strongest" '
+                  '(1) rearrangements with control reads (default=%default)')
     op.add_option("-d", "--max-diff", type="float", default=1000, metavar="BP",
                   help="maximum query-length difference for "
                   "shared rearrangement (default=%default)")

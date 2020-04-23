@@ -38,6 +38,27 @@ Each group is given a name, such as `group5-28`.  The first number
 (`5`) is a serial number for each group, and the second number (`28`)
 is the number of reads in the group.
 
+#### Low coverage
+
+By default, `dnarrange` finds rearrangements supported by at least 2
+reads.  To find also rearrangements with just 1 read, use `-s1`:
+
+    dnarrange -s1 case.maf > groups0.maf
+
+You can get an intermediate level of leniency by using `-c0` instead
+of `-s1`: this finds groups with at least 2 reads, but does not
+require each consecutive pair of rearranged fragments to be supported
+by 2 reads.  If you use either `-s1` or `-c0`, it may be useful to
+apply "strict control filtering" with `-f0`:
+
+    dnarrange -c0 -f0 case.maf : control1.maf control2.maf > groups.maf
+
+`-f0` makes it discard any case read with any two rearranged fragments
+in common with any control read.  The default is to discard case reads
+whose "strongest" rearrangement type is shared with a control read,
+where "strength" is defined by: inter-chromosome > inter-strand >
+non-colinear > big gap.
+
 ### Step 3: Draw pictures of the groups
 
 Draw a picture of each group, showing the read-to-genome alignments,
@@ -195,9 +216,10 @@ from any breakpoint like this:
   (default=2).  A value of `0` tells it to not bother grouping: it
   will simply find rearranged query sequences.
 
-- `-c N`, `--min-cov=N`: omit any query sequence that has any
-  rearrangement shared by < N other queries.  The default depends on
-  the `-s` option: when s>1, the default is 1, else the default is 0.
+- `-c N`, `--min-cov=N`: discard any query sequence that has a pair of
+  consecutive rearranged fragments shared by < N other queries.  The
+  default depends on the `-s` option: when s>1, the default is 1, else
+  the default is 0.
 
 - `-t LETTERS`, `--types=LETTERS`: rearrangement types:
   C=inter-chromosome, S=inter-strand, N=non-colinear, G=big gap
@@ -211,6 +233,9 @@ from any breakpoint like this:
   sequence counted as "non-colinear" (default=1000).  The purpose of
   this is to exclude small tandem duplications, which can be
   overwhelmingly numerous.  To include everything, use `-r1`.
+
+- `-f N`, `--filter=N`: discard case reads sharing any (0) or
+  "strongest" (1) rearrangements with control reads (default=1).
 
 - `-d BP`, `--max-diff=BP`: maximum query-length difference for shared
   rearrangement (default=1000).
