@@ -322,19 +322,19 @@ def isSameQueryStrand(alnA, alnB):
 def isAdjacent(alnX, alnY):
     return alnX[6] + 1 == alnY[6] or alnY[6] + 1 == alnX[6]
 
-def isNonlinearPair(opts, alnX, alnY):
+def isNonlinearPair(opts, types, alnX, alnY):
     if alnX[3] != alnY[3]:
-        return "C" in opts.types and isDifferentChromosomes(alnX[3], alnY[3])
+        return "C" in types and isDifferentChromosomes(alnX[3], alnY[3])
     if not isSameQueryStrand(alnX, alnY):
-        return "S" in opts.types
+        return "S" in types
     if alnX[1] < alnY[1]:
         gap = alnY[4] - alnX[5]
     else:
         gap = alnX[4] - alnY[5]
-    if "N" in opts.types and gap + opts.min_rev <= 0:
+    if "N" in types and gap + opts.min_rev <= 0:
         if not isCircularChromosome(alnX[3]):
             return True
-    if "G" in opts.types and gap >= opts.min_gap:
+    if "G" in types and gap >= opts.min_gap:
         if isAdjacent(alnX, alnY):
             return True
     return False
@@ -381,7 +381,7 @@ def isSharedRearrangement(opts, alnAX, alnAY, alnBX, alnBY):
             return False
         return gapAtoB > 0 and gapBtoA > 0
 
-def sharedRearrangement(opts, alignments, overlapsBetweenTwoQueries):
+def sharedRearrangement(opts, types, alignments, overlapsBetweenTwoQueries):
     # "A" refers to a query sequence
     # "B" refers to a different query sequence
     groups = groupby(overlapsBetweenTwoQueries, itemgetter(1))
@@ -393,7 +393,7 @@ def sharedRearrangement(opts, alignments, overlapsBetweenTwoQueries):
                 break
             alnAX = alignments[alnNumAX]
             alnAY = alignments[alnNumAY]
-            if not isNonlinearPair(opts, alnAX, alnAY):
+            if not isNonlinearPair(opts, types, alnAX, alnAY):
                 continue
             for alnNumBY in alnNumsBY:
                 for alnNumBX in alnNumsBX:
@@ -414,9 +414,10 @@ def sharedRearrangement(opts, alignments, overlapsBetweenTwoQueries):
     return None
 
 def isNoSharedRearrangement(opts, alignments, alignmentsOfOneOkQuery):
+    types = opts.types
     overlaps = sorted(overlapsOfOneQuery(alignments, alignmentsOfOneOkQuery))
     for qryNumB, g in groupby(overlaps, itemgetter(0)):
-        if sharedRearrangement(opts, alignments, g):
+        if sharedRearrangement(opts, types, alignments, g):
             return False
     return True
 
@@ -426,7 +427,7 @@ def linksBetweenQueries(opts, alignments, alignmentsPerQuery):
         qryNumA = alignmentsOfOneQuery[0][0]
         overlaps = sorted(overlapsOfOneQuery(alignments, alignmentsOfOneQuery))
         for qryNumB, g in groupby(overlaps, itemgetter(0)):
-            strand = sharedRearrangement(opts, alignments, g)
+            strand = sharedRearrangement(opts, opts.types, alignments, g)
             if strand:
                 yield qryNumA, qryNumB, strand == "-"
 
@@ -489,7 +490,7 @@ def isAllJumpsSupported(opts, alignmentsOfOneQuery):
     for j, y in enumerate(alignmentsOfOneQuery):
         if j:
             x = alignmentsOfOneQuery[j - 1]
-            if isNonlinearPair(opts, x, y):
+            if isNonlinearPair(opts, opts.types, x, y):
                 if len(set(y[7])) < opts.min_cov:
                     return False
     return True
