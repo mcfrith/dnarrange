@@ -238,7 +238,7 @@ from any breakpoint like this:
   "strongest" (1) rearrangements with control reads (default=1).
 
 - `-d BP`, `--max-diff=BP`: maximum query-length difference for shared
-  rearrangement (default=1000).
+  rearrangement (default=500).
 
 - `-m PROB`, `--max-mismap=PROB`: discard any alignment with mismap
   probability > PROB (default=1).

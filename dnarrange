@@ -808,7 +808,7 @@ if __name__ == "__main__":
     op.add_option("-f", "--filter", type="int", default=1, metavar="N",
                   help='discard case reads sharing any (0) or "strongest" '
                   '(1) rearrangements with control reads (default=%default)')
-    op.add_option("-d", "--max-diff", type="float", default=1000, metavar="BP",
+    op.add_option("-d", "--max-diff", type="float", default=500, metavar="BP",
                   help="maximum query-length difference for "
                   "shared rearrangement (default=%default)")
     op.add_option("-m", "--max-mismap", type="float", default=1.0,
