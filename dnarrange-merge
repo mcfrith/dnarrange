@@ -67,6 +67,7 @@ def main(opts, args):
         mergedSequenceName = groupName.replace("group", "merge")
         cmd = ["lamassemble", "-n" + mergedSequenceName]
         cmd.append("-g" + str(opts.gap_max))
+        cmd.append("-s" + str(opts.seq_min))
         cmd.append("-p" + str(opts.prob))
         if opts.verbose:
             cmd.append("-" + "v" * opts.verbose)
@@ -93,6 +94,8 @@ if __name__ == "__main__":
     op.add_option("-g", "--gap-max", metavar="G", type="float", default=50,
                   help="use alignment columns with <= G% gaps "
                   "(default=%default)")
+    op.add_option("-s", "--seq-min", metavar="S", default="1", help="omit "
+                  "consensus flanks with < S sequences (default=%default)")
     op.add_option("-p", "--prob", metavar="P", type="float", default=0.002,
                   help="use pairwise restrictions with error probability <= P "
                   "(default=%default)")

@@ -6,6 +6,7 @@ Merge DNA sequences of each group into a consensus sequence.
 Options:
   -h, --help         show this help message and exit
   -g G, --gap-max=G  use alignment columns with <= G% gaps (default=50)
+  -s S, --seq-min=S  omit consensus flanks with < S sequences (default=1)
   -p P, --prob=P     use pairwise restrictions with error probability <= P
                      (default=0.002)
   -v, --verbose      show progress messages
