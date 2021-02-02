@@ -154,10 +154,10 @@ only the group names and topmost reads from the summary.
 
 `dnarrange-link` may show a warning message like this:
 
-    WARNING: 256 equally-good ways of linking ends in chr8
+    WARNING: 4 equally-good ways of linking ends in chr8
 
 In this case, it arbitrarily picks one of these ways to link the ends
-in chr8.
+in chr8 (or you can use `-a` to get them all).
 
 The output has reconstructed chromosomes with names like `der1`,
 `der2`.  If a reconstructed chromosome has widely-separated

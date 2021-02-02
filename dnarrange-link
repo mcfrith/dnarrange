@@ -141,6 +141,29 @@ def edgesFromNodes(sortedNodesOfOneChromosome):
         else:
             upperEnds.append(node)
 
+def allEdgeSetsFromNodes(sortedNodesOfOneChromosome):
+    upperEnds = []
+    theNullMatching = [], []
+    matchings = [theNullMatching]
+    for i, node in enumerate(sortedNodesOfOneChromosome):
+        isLowerEnd = node[2]
+        if isLowerEnd:
+            newMatchings = []
+            for uppers, lowers in matchings:
+                for u in upperEnds:
+                    if u not in uppers:
+                        n = uppers + [u], lowers + [i]
+                        newMatchings.append(n)
+            matchings.extend(newMatchings)
+        else:
+            upperEnds.append(i)
+    theMax = max(len(i[0]) for i in matchings)
+    for uppers, lowers in matchings:
+        if len(uppers) == theMax:
+            z = zip(uppers, lowers)
+            yield [(sortedNodesOfOneChromosome[i][3:5],
+                    sortedNodesOfOneChromosome[j][3:5]) for i, j in z]
+
 def nextNode(edges, node):
     for x, y in edges:
         if x == node:
@@ -285,23 +308,7 @@ def adjacencyListOfDerivedSeqParts(derParts, maxDist):
         e = enumerate(derParts)
         yield [j for j, y in e if i != j and isNear(x, y, maxDist)]
 
-def main(opts, args):
-    logging.basicConfig(format="%(filename)s: WARNING: %(message)s")
-    rearrangements = list(rearrangementsFromLines(openFile(args[0])))
-    if opts.groups:
-        rearrangements = list(wantedRearrangements(opts, rearrangements))
-    nodes = sorted(nodesFromRearrangements(rearrangements))
-    edges = []
-    for chrom, group in itertools.groupby(nodes, itemgetter(0)):
-        group = list(group)
-        numOfMatchings = numOfMaximumMatchings(group)
-        if numOfMatchings > 1:
-            warning = "{0} equally-good ways of linking ends in {1}"
-            logging.warning(warning.format(numOfMatchings, chrom))
-        if opts.verbose:
-            showNodesOfOneChromosome(rearrangements, group)
-        edges.extend(edgesFromNodes(group))
-
+def doOneEdgeSet(opts, rearrangements, wayNum, edges):
     chains = rearrangementChainsFromEdges(len(rearrangements), edges)
     derSeqs = [derivedSeqFromChain(rearrangements, i) for i in chains]
     derSeqs.sort(key=derivedSeqSortKey)
@@ -316,7 +323,10 @@ def main(opts, args):
     components = connectedComponents(adjList)
 
     for i, x in enumerate(components):
-        print("# PART " + str(i+1))
+        partName = str(i + 1)
+        if opts.all:
+            partName = str(wayNum) + "-" + partName
+        print("# PART", partName)
         print()
         for derPartNum in x:
             name, segments = derParts[derPartNum]
@@ -325,10 +335,38 @@ def main(opts, args):
                 printSegment(*i)
             print()
 
+def main(opts, args):
+    logging.basicConfig(format="%(filename)s: WARNING: %(message)s")
+    rearrangements = list(rearrangementsFromLines(openFile(args[0])))
+    if opts.groups:
+        rearrangements = list(wantedRearrangements(opts, rearrangements))
+    nodes = sorted(nodesFromRearrangements(rearrangements))
+
+    edgeSetsPerChrom = []
+    for chrom, group in itertools.groupby(nodes, itemgetter(0)):
+        group = list(group)
+        numOfMatchings = numOfMaximumMatchings(group)
+        if numOfMatchings > 1:
+            warning = "{0} equally-good ways of linking ends in {1}"
+            logging.warning(warning.format(numOfMatchings, chrom))
+        if opts.verbose:
+            showNodesOfOneChromosome(rearrangements, group)
+        if opts.all:
+            edgeSets = list(allEdgeSetsFromNodes(group))
+        else:
+            edgeSets = [list(edgesFromNodes(group))]
+        edgeSetsPerChrom.append(edgeSets)
+
+    for i, x in enumerate(itertools.product(*edgeSetsPerChrom)):
+        edges = list(itertools.chain.from_iterable(x))
+        doOneEdgeSet(opts, rearrangements, i + 1, edges)
+
 if __name__ == "__main__":
     usage = "%prog [options] rearrangements-file > linked.txt"
     descr = "Infer links between rearranged sequences, and reconstruct derived chromosomes."
     op = optparse.OptionParser(usage=usage, description=descr)
+    op.add_option("-a", "--all", action="store_true",
+                  help="show all equally-good ways of linking")
     op.add_option("-g", "--groups", metavar="LIST",
                   help="only use these groups")
     op.add_option("-m", "--maxlen", type="float", metavar="M", default=1000000,
