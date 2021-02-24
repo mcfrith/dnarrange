@@ -7,8 +7,6 @@ to a genome sequence.
 
 You can use [this
 recipe](https://github.com/mcfrith/last-rna/blob/master/last-long-reads.md).
-(You can use `last-split` `-fMAF`, to reduce the file size, with no
-effect on the following steps.)
 
 ### Step 2: Find rearrangements
 
@@ -67,10 +65,10 @@ in a new directory `group-pics`:
     last-multiplot groups.maf group-pics
 
 `last-multiplot` has the same
-[options](http://last.cbrc.jp/doc/last-dotplot.html) as
-`last-dotplot`.  In fact, `last-multiplot` uses `last-dotplot`, so it
-requires the latter to be
-[installed](http://last.cbrc.jp/doc/last.html) (i.e. in your PATH).
+[options](https://gitlab.com/mcfrith/last/-/blob/main/doc/last-dotplot.rst)
+as `last-dotplot`.  In fact, `last-multiplot` uses `last-dotplot`, so
+it requires the latter to be
+[installed](https://gitlab.com/mcfrith/last) (i.e. in your PATH).
 This in turn requires the [Python Imaging
 Library](https://pillow.readthedocs.io/) to be installed.
 
@@ -107,7 +105,7 @@ repeat-masking):
 
     lastdb -P8 -uNEAR -R01 mydb genome.fa
     last-train -P8 mydb merged.fa > merged.par
-    lastal -P8 -p merged.par mydb merged.fa | last-split -m1 > merged.maf
+    lastal -P8 -p merged.par mydb merged.fa | last-split > merged.maf
 
 And draw pictures:
 
@@ -175,7 +173,7 @@ To make the pictures clearer, you may wish to:
   rearrangements.
 
 * Draw a subset of derived sequences with [option
-  -2](http://last.cbrc.jp/doc/last-dotplot.html#choosing-sequences):
+  -2](https://gitlab.com/mcfrith/last/-/blob/main/doc/last-dotplot.rst):
 
       last-multiplot -2 'der[257]*' linked.txt linked-pics
 
