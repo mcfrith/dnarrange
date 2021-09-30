@@ -377,19 +377,15 @@ def isSharedRearrangement(opts, alnAX, alnAY, alnBX, alnBY):
     gapB = refBX + refBY
     gapAtoB = refAX + refBY
     gapBtoA = refBX + refAY
+    gapMin = min(gapA, gapB)
+    gapMax = max(gapA, gapB)
 
-    if gapA < 0:  # type "N"
-        if gapB + opts.min_rev > 0:
-            return False
-        if gapB * 2 > gapA or gapA * 2 > gapB:
-            return False
-        return gapAtoB < 0 and gapBtoA < 0
-    else:  # type "G"
-        if gapB < opts.min_gap or not isAdjacent(alnBX, alnBY):
-            return False
-        if gapB * 2 < gapA or gapA * 2 < gapB:
-            return False
-        return gapAtoB > 0 and gapBtoA > 0
+    return (gapB <= -opts.min_rev and gapMax * 2 <= gapMin
+            and gapAtoB < 0 and gapBtoA < 0
+            or
+            gapB >= opts.min_gap and gapMin * 2 >= gapMax
+            and isAdjacent(alnBX, alnBY)
+            and gapAtoB > 0 and gapBtoA > 0)
 
 def sharedRearrangement(opts, types, alignments, overlapsBetweenTwoQueries):
     # "A" refers to a query sequence
