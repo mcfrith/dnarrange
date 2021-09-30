@@ -15,7 +15,7 @@ import re
 import signal
 import sys
 import textwrap
-from itertools import chain, groupby
+from itertools import chain, groupby, islice
 from operator import itemgetter
 
 def myOpen(fileName):  # faster than fileinput
@@ -269,17 +269,6 @@ def alignmentsPerRearrangedQuerySequence(opts, fileNames):
 def alignedQueryLength(alignmentsOfOneQuery):
     return sum(i[2] - i[1] for i in alignmentsOfOneQuery)
 
-def overlappingAlignmentPairs(myAlignmentsInGenomeOrder):
-    stash = []
-    for alnB in myAlignmentsInGenomeOrder:
-        newStash = []
-        for alnA in stash:
-            if alnA[3] == alnB[3] and alnA[5] > alnB[4]:
-                yield alnA, alnB
-                newStash.append(alnA)
-        stash = newStash
-        stash.append(alnB)
-
 def addNgOverlaps(okAlignmentsInGenomeOrder, ngAlignmentsInGenomeOrder):
     logging.info("finding overlaps for exclusion...")
     stash = []
@@ -304,11 +293,26 @@ def addNgOverlaps(okAlignmentsInGenomeOrder, ngAlignmentsInGenomeOrder):
 
 def addOverlaps(myAlignmentsInGenomeOrder):
     logging.info("finding overlaps...")
-    for alnA, alnB in overlappingAlignmentPairs(myAlignmentsInGenomeOrder):
-        if alnA[0] < alnB[0]:
-            alnA[7].append(alnB[6])
-        if alnB[0] < alnA[0]:
-            alnB[7].append(alnA[6])
+    stash = []
+    refName = ""
+    for alnB in myAlignmentsInGenomeOrder:
+        if alnB[3] != refName:
+            n = 0
+            refName = alnB[3]
+        qryNum = alnB[0]
+        refBeg = alnB[4]
+        j = 0
+        for alnA in islice(stash, n):
+            if alnA[5] > refBeg:  # overlap in ref
+                if alnA[0] < qryNum:
+                    alnA[7].append(alnB[6])
+                elif alnA[0] > qryNum:
+                    alnB[7].append(alnA[6])
+                stash[j] = alnA
+                j += 1
+        if len(stash) == j: stash.append(None)
+        stash[j] = alnB
+        n = j + 1
 
 def delOverlaps(alignments):
     for i in alignments:
@@ -487,10 +491,25 @@ def addJumpIfShared(alignments, alnA, alnB):
 
 def addSharedJumps(alignments, myAlignmentsInGenomeOrder):
     logging.info("finding shared jumps...")
-    for alnA, alnB in overlappingAlignmentPairs(myAlignmentsInGenomeOrder):
-        if alnA[0] != alnB[0]:
-            addJumpIfShared(alignments, alnA, alnB)
-            addJumpIfShared(alignments, alnB, alnA)
+    stash = []
+    refName = ""
+    for alnB in myAlignmentsInGenomeOrder:
+        if alnB[3] != refName:
+            n = 0
+            refName = alnB[3]
+        qryNum = alnB[0]
+        refBeg = alnB[4]
+        j = 0
+        for alnA in islice(stash, n):
+            if alnA[5] > refBeg:  # overlap in ref
+                if alnA[0] != qryNum:
+                    addJumpIfShared(alignments, alnA, alnB)
+                    addJumpIfShared(alignments, alnB, alnA)
+                stash[j] = alnA
+                j += 1
+        if len(stash) == j: stash.append(None)
+        stash[j] = alnB
+        n = j + 1
 
 def isAllJumpsSupported(opts, alignmentsOfOneQuery):
     for j, y in enumerate(alignmentsOfOneQuery):
