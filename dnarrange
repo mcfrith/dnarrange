@@ -456,38 +456,27 @@ def linksBetweenClumps(alignments, alignmentsPerQuery, clumps):
                     if b < len(clumps) and b != a:
                         yield min(a, b), max(a, b), False
 
-def isOverlap(alnA, alnB):
-    return alnA[3] == alnB[3] and alnA[4] < alnB[5] and alnA[5] > alnB[4]
-
-def prevAlignment(alignments, thisAlignment):
-    alnNum = thisAlignment[6]
-    if alnNum == 0:
-        return None
-    a = alignments[alnNum - 1]
-    return a if a[0] == thisAlignment[0] else None
-
-def nextAlignment(alignments, thisAlignment):
-    alnNum = thisAlignment[6]
-    if alnNum == len(alignments) - 1:
-        return None
-    a = alignments[alnNum + 1]
-    return a if a[0] == thisAlignment[0] else None
-
 def addJumpIfShared(alignments, alnA, alnB):
-    alnAX = prevAlignment(alignments, alnA)
-    isSameStrand = isSameQueryStrand(alnA, alnB)
-    if isSameStrand:
-        alnBX = prevAlignment(alignments, alnB)
+    if alnA[6] == 0: return
+    alnAX = alignments[alnA[6] - 1]
+    if isSameQueryStrand(alnA, alnB):
+        if alnB[6] == 0: return
+        alnBX = alignments[alnB[6] - 1]
+        if (alnAX[0] == alnA[0] and alnBX[0] == alnB[0]
+            and alnAX[3] == alnBX[3]
+            and alnAX[4] < alnBX[5] and alnAX[5] > alnBX[4]
+            and isSameQueryStrand(alnAX, alnBX)
+            and isSharedRearrangement(opts, alnAX, alnA, alnBX, alnB)):
+            alnA[7].append(alnB[0])
     else:
-        alnBX = nextAlignment(alignments, alnB)
-    if alnAX is None or alnBX is None:
-        return
-    if not isOverlap(alnAX, alnBX):
-        return
-    if isSameQueryStrand(alnAX, alnBX) != isSameStrand:
-        return
-    if isSharedRearrangement(opts, alnAX, alnA, alnBX, alnB):
-        alnA[7].append(alnB[0])
+        if alnB[6] + 1 == len(alignments): return
+        alnBX = alignments[alnB[6] + 1]
+        if (alnAX[0] == alnA[0] and alnBX[0] == alnB[0]
+            and alnAX[3] == alnBX[3]
+            and alnAX[4] < alnBX[5] and alnAX[5] > alnBX[4]
+            and not isSameQueryStrand(alnAX, alnBX)
+            and isSharedRearrangement(opts, alnAX, alnA, alnBX, alnB)):
+            alnA[7].append(alnB[0])
 
 def addSharedJumps(alignments, myAlignmentsInGenomeOrder):
     logging.info("finding shared jumps...")
