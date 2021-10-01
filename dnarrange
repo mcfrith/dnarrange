@@ -380,10 +380,10 @@ def isSharedRearrangement(opts, alnAX, alnAY, alnBX, alnBY):
     gapMin = min(gapA, gapB)
     gapMax = max(gapA, gapB)
 
-    return (gapB <= -opts.min_rev and gapMax * 2 <= gapMin
+    return (gapMax <= -opts.min_rev and gapMax * 2 <= gapMin
             and gapAtoB < 0 and gapBtoA < 0
             or
-            gapB >= opts.min_gap and gapMin * 2 >= gapMax
+            gapMin >= opts.min_gap and gapMin * 2 >= gapMax
             and isAdjacent(alnBX, alnBY)
             and gapAtoB > 0 and gapBtoA > 0)
 
@@ -452,7 +452,7 @@ def linksBetweenClumps(alignments, alignmentsPerQuery, clumps):
                     if b < len(clumps) and b != a:
                         yield min(a, b), max(a, b), False
 
-def addJumpIfShared(alignments, alnA, alnB):
+def addJumpsIfShared(alignments, alnA, alnB):
     if alnA[6] == 0: return
     alnAX = alignments[alnA[6] - 1]
     if isSameQueryStrand(alnA, alnB):
@@ -464,6 +464,7 @@ def addJumpIfShared(alignments, alnA, alnB):
             and isSameQueryStrand(alnAX, alnBX)
             and isSharedRearrangement(opts, alnAX, alnA, alnBX, alnB)):
             alnA[7].append(alnB[0])
+            alnB[7].append(alnA[0])
     else:
         if alnB[6] + 1 == len(alignments): return
         alnBX = alignments[alnB[6] + 1]
@@ -473,6 +474,7 @@ def addJumpIfShared(alignments, alnA, alnB):
             and not isSameQueryStrand(alnAX, alnBX)
             and isSharedRearrangement(opts, alnAX, alnA, alnBX, alnB)):
             alnA[7].append(alnB[0])
+            alnBX[7].append(alnAX[0])
 
 def addSharedJumps(alignments, myAlignmentsInGenomeOrder):
     logging.info("finding shared jumps...")
@@ -487,9 +489,10 @@ def addSharedJumps(alignments, myAlignmentsInGenomeOrder):
         j = 0
         for alnA in islice(stash, n):
             if alnA[5] > refBeg:  # overlap in ref
-                if alnA[0] != qryNum:
-                    addJumpIfShared(alignments, alnA, alnB)
-                    addJumpIfShared(alignments, alnB, alnA)
+                if alnA[0] < qryNum:
+                    addJumpsIfShared(alignments, alnA, alnB)
+                elif alnA[0] > qryNum:
+                    addJumpsIfShared(alignments, alnB, alnA)
                 stash[j] = alnA
                 j += 1
         if len(stash) == j: stash.append(None)
