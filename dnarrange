@@ -273,19 +273,19 @@ def addNgOverlaps(okAlignmentsInGenomeOrder, ngAlignmentsInGenomeOrder):
     logging.info("finding overlaps for exclusion...")
     stash = []
     n = len(ngAlignmentsInGenomeOrder)
-    ngPos = 0
+    i = 0
     for alnA in okAlignmentsInGenomeOrder:
         refNameA, refBegA, refEndA = alnA[3:6]
         overlapsA = alnA[7]
-        while ngPos < n:
-            alnB = ngAlignmentsInGenomeOrder[ngPos]
+        while i < n:
+            alnB = ngAlignmentsInGenomeOrder[i]
             if (alnB[3], alnB[4]) >= (refNameA, refBegA):
                 break
             stash.append(alnB)
-            ngPos += 1
-        stash = [i for i in stash if i[3] == refNameA and i[5] > refBegA]
-        overlapsA.extend(i[6] for i in stash)
-        j = ngPos
+            i += 1
+        stash = [x for x in stash if x[3] == refNameA and x[5] > refBegA]
+        overlapsA.extend(x[6] for x in stash)
+        j = i
         while j < n:
             alnB = ngAlignmentsInGenomeOrder[j]
             if alnB[3] > refNameA or alnB[4] >= refEndA:
