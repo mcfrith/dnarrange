@@ -498,12 +498,12 @@ def addSharedJumps(alignments, myAlignmentsInGenomeOrder):
         stash[j] = alnB
         n = j + 1
 
-def isAllJumpsSupported(opts, alignmentsOfOneQuery):
+def isAllJumpsSupported(opts, goodQryNums, alignmentsOfOneQuery):
     for j, y in enumerate(alignmentsOfOneQuery):
         if j:
             x = alignmentsOfOneQuery[j - 1]
             if isNonlinearPair(opts, opts.types, x, y):
-                if len(set(y[7])) < opts.min_cov:
+                if len(set(y[7]) & goodQryNums) < opts.min_cov:
                     return False
     return True
 
@@ -532,18 +532,18 @@ def alignmentsInGenomeOrder(alignmentsPerQuery):
     return sorted(alignments, key=itemgetter(3, 4))
 
 def alignmentsOfCoveredQueries(opts, alignments, alignmentsPerQuery):
+    myAlignmentsInGenomeOrder = alignmentsInGenomeOrder(alignmentsPerQuery)
+    addSharedJumps(alignments, myAlignmentsInGenomeOrder)
     while True:
-        oldLen = len(alignmentsPerQuery)
-        logging.info("queries: " + str(oldLen))
-        myAlignmentsInGenomeOrder = alignmentsInGenomeOrder(alignmentsPerQuery)
-        if opts.min_cov:
-            addSharedJumps(alignments, myAlignmentsInGenomeOrder)
-            logging.info("excluding...")
-            alignmentsPerQuery = [i for i in alignmentsPerQuery
-                                  if isAllJumpsSupported(opts, i)]
-            delOverlaps(myAlignmentsInGenomeOrder)
-        if len(alignmentsPerQuery) == oldLen:
-            return alignmentsPerQuery, myAlignmentsInGenomeOrder
+        logging.info("excluding...")
+        qryNums = set(i[0][0] for i in alignmentsPerQuery)
+        alignmentsPerQuery = [i for i in alignmentsPerQuery
+                              if isAllJumpsSupported(opts, qryNums, i)]
+        if len(alignmentsPerQuery) == len(qryNums):
+            break
+        logging.info("queries: " + str(len(alignmentsPerQuery)))
+    delOverlaps(myAlignmentsInGenomeOrder)
+    return alignmentsPerQuery
 
 def newStrand(strand, isFlipped):
     return "-+"[isFlipped == (strand == "-")]
@@ -724,8 +724,10 @@ def main(opts, args):
     alnsPerKeptQuery = alignmentsPerKeptQuery(colonPos,
                                               dataPerQuery, alignments)
 
-    cov = alignmentsOfCoveredQueries(opts, alignments, alnsPerKeptQuery)
-    alnsPerKeptQuery, myAlignmentsInGenomeOrder = cov
+    logging.info("queries: " + str(len(alnsPerKeptQuery)))
+    if opts.min_cov:
+        alnsPerKeptQuery = alignmentsOfCoveredQueries(opts, alignments,
+                                                      alnsPerKeptQuery)
 
     print("#", os.path.basename(sys.argv[0]), *sys.argv[1:])
     print()
@@ -733,6 +735,7 @@ def main(opts, args):
     if opts.min_seqs < 1:
         return printAlignments(opts, alnsPerKeptQuery, alignmentTextsPerQuery)
 
+    myAlignmentsInGenomeOrder = alignmentsInGenomeOrder(alnsPerKeptQuery)
     addOverlaps(myAlignmentsInGenomeOrder)
 
     links = linksBetweenQueries(opts, alignments, alnsPerKeptQuery)
