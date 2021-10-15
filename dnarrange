@@ -272,24 +272,26 @@ def alignedQueryLength(alignmentsOfOneQuery):
 def addNgOverlaps(okAlignmentsInGenomeOrder, ngAlignmentsInGenomeOrder):
     logging.info("finding overlaps for exclusion...")
     stash = []
+    n = len(ngAlignmentsInGenomeOrder)
     ngPos = 0
     for alnA in okAlignmentsInGenomeOrder:
         refNameA, refBegA, refEndA = alnA[3:6]
-        while ngPos < len(ngAlignmentsInGenomeOrder):
+        overlapsA = alnA[7]
+        while ngPos < n:
             alnB = ngAlignmentsInGenomeOrder[ngPos]
             if (alnB[3], alnB[4]) >= (refNameA, refBegA):
                 break
             stash.append(alnB)
             ngPos += 1
         stash = [i for i in stash if i[3] == refNameA and i[5] > refBegA]
-        alnA[7].extend(i[6] for i in stash)
-        ngEnd = ngPos
-        while ngEnd < len(ngAlignmentsInGenomeOrder):
-            alnB = ngAlignmentsInGenomeOrder[ngEnd]
+        overlapsA.extend(i[6] for i in stash)
+        j = ngPos
+        while j < n:
+            alnB = ngAlignmentsInGenomeOrder[j]
             if alnB[3] > refNameA or alnB[4] >= refEndA:
                 break
-            alnA[7].append(alnB[6])
-            ngEnd += 1
+            overlapsA.append(alnB[6])
+            j += 1
 
 def addOverlaps(myAlignmentsInGenomeOrder):
     logging.info("finding overlaps...")
