@@ -494,6 +494,9 @@ def addSharedJumps(alignments, myAlignmentsInGenomeOrder):
                     addJumpsIfShared(alignments, alnB, alnA)
                 stash[j] = alnA
                 j += 1
+            else:
+                overlapsA = alnA[7]
+                overlapsA[:] = list(set(overlapsA))  # try to save memory
         if len(stash) == j: stash.append(None)
         stash[j] = alnB
         n = j + 1
