@@ -386,7 +386,8 @@ def isSharedRearrangement(opts, alnAX, alnAY, alnBX, alnBY):
             and isAdjacent(alnBX, alnBY)
             and gapAtoB > 0 and gapBtoA > 0)
 
-def sharedRearrangement(opts, types, alignments, overlapsBetweenTwoQueries):
+def sharedRearrangement(opts, types, alignmentsA, alignmentsB,
+                        overlapsBetweenTwoQueries):
     # "A" refers to a query sequence
     # "B" refers to a different query sequence
     groups = groupby(overlapsBetweenTwoQueries, itemgetter(1))
@@ -396,16 +397,16 @@ def sharedRearrangement(opts, types, alignments, overlapsBetweenTwoQueries):
         for alnNumAX, alnNumsBX in overlapsPerAlnA:
             if alnNumAX == alnNumAY:
                 break
-            alnAX = alignments[alnNumAX]
-            alnAY = alignments[alnNumAY]
+            alnAX = alignmentsA[alnNumAX]
+            alnAY = alignmentsA[alnNumAY]
             if not isNonlinearPair(opts, types, alnAX, alnAY):
                 continue
             for alnNumBY in alnNumsBY:
                 for alnNumBX in alnNumsBX:
                     if alnNumBX == alnNumBY:
                         continue
-                    alnBX = alignments[alnNumBX]
-                    alnBY = alignments[alnNumBY]
+                    alnBX = alignmentsB[alnNumBX]
+                    alnBY = alignmentsB[alnNumBY]
                     isSameStrand = isSameQueryStrand(alnAY, alnBY)
                     if isSameQueryStrand(alnAX, alnBX) != isSameStrand:
                         continue
@@ -418,11 +419,12 @@ def sharedRearrangement(opts, types, alignments, overlapsBetweenTwoQueries):
                         return "-+"[isSameStrand]
     return None
 
-def isNoSharedRearrangement(opts, alignments, alignmentsOfOneOkQuery, rType):
+def isNoSharedRearrangement(opts, okAlignments, ngAlignments,
+                            alignmentsOfOneOkQuery, rType):
     types = rType if opts.filter > 0 else opts.types
-    overlaps = sorted(overlapsOfOneQuery(alignments, alignmentsOfOneOkQuery))
+    overlaps = sorted(overlapsOfOneQuery(ngAlignments, alignmentsOfOneOkQuery))
     for qryNumB, g in groupby(overlaps, itemgetter(0)):
-        if sharedRearrangement(opts, types, alignments, g):
+        if sharedRearrangement(opts, types, okAlignments, ngAlignments, g):
             return False
     return True
 
@@ -432,7 +434,8 @@ def linksBetweenQueries(opts, alignments, alignmentsPerQuery):
         qryNumA = alignmentsOfOneQuery[0][0]
         overlaps = sorted(overlapsOfOneQuery(alignments, alignmentsOfOneQuery))
         for qryNumB, g in groupby(overlaps, itemgetter(0)):
-            strand = sharedRearrangement(opts, opts.types, alignments, g)
+            strand = sharedRearrangement(opts, opts.types,
+                                         alignments, alignments, g)
             if strand:
                 yield qryNumA, qryNumB, strand == "-"
 
@@ -631,7 +634,8 @@ def alignmentsPerKeptQuery(numOfCaseFiles, dataPerQuery, alignments):
     addNgOverlaps(okAlignmentsInGenomeOrder, ngAlignmentsInGenomeOrder)
     logging.info("excluding...")
     z = zip(okAlns, okTypes)
-    out = [i for i, j in z if isNoSharedRearrangement(opts, alignments, i, j)]
+    out = [i for i, j in z if isNoSharedRearrangement(opts, alignments,
+                                                      alignments, i, j)]
     delOverlaps(okAlignmentsInGenomeOrder)
     return out
 
