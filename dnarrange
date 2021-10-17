@@ -451,7 +451,7 @@ def linksBetweenClumps(alignments, alignmentsPerQuery, clumps):
                     if b < len(clumps) and b != a:
                         yield min(a, b), max(a, b), False
 
-def addJumpsIfShared(alignments, alnA, alnB):
+def addJumpsIfShared(opts, alignments, alnA, alnB):
     if alnA[6] == 0: return
     alnAX = alignments[alnA[6] - 1]
     if isSameQueryStrand(alnA, alnB):
@@ -475,7 +475,7 @@ def addJumpsIfShared(alignments, alnA, alnB):
             alnA[7].append(alnB[0])
             alnBX[7].append(alnAX[0])
 
-def addSharedJumps(alignments, myAlignmentsInGenomeOrder):
+def addSharedJumps(opts, alignments, myAlignmentsInGenomeOrder):
     logging.info("finding shared jumps...")
     stash = []
     refName = ""
@@ -489,9 +489,9 @@ def addSharedJumps(alignments, myAlignmentsInGenomeOrder):
         for alnA in islice(stash, n):
             if alnA[5] > refBeg:  # overlap in ref
                 if alnA[0] < qryNum:
-                    addJumpsIfShared(alignments, alnA, alnB)
+                    addJumpsIfShared(opts, alignments, alnA, alnB)
                 elif alnA[0] > qryNum:
-                    addJumpsIfShared(alignments, alnB, alnA)
+                    addJumpsIfShared(opts, alignments, alnB, alnA)
                 stash[j] = alnA
                 j += 1
             else:
@@ -536,7 +536,7 @@ def alignmentsInGenomeOrder(alignmentsPerQuery):
 
 def alignmentsOfCoveredQueries(opts, alignments, alignmentsPerQuery):
     myAlignmentsInGenomeOrder = alignmentsInGenomeOrder(alignmentsPerQuery)
-    addSharedJumps(alignments, myAlignmentsInGenomeOrder)
+    addSharedJumps(opts, alignments, myAlignmentsInGenomeOrder)
     while True:
         logging.info("excluding...")
         qryNums = set(i[0][0] for i in alignmentsPerQuery)
@@ -654,10 +654,10 @@ def namedClumps(queryNames, isEachQueryOneMergedGroup, clumps):
             name = "group{0}-{1}".format(i + 1, len(clump))
             yield name, clump
 
-def wantedClumps(minNumOfFiles, fileNumsPerQuery, clumps):
+def wantedClumps(minNumOfFiles, fileNumPerQuery, clumps):
     for i in clumps:
         clumpName, clump = i
-        fileNums = set(fileNumsPerQuery[qryNum] for qryNum, isFlipped in clump)
+        fileNums = set(fileNumPerQuery[qryNum] for qryNum, isFlipped in clump)
         if len(fileNums) >= minNumOfFiles:
             yield i
 
@@ -720,7 +720,7 @@ def main(opts, args):
     dataPerQuery = list(alignmentsPerRearrangedQuerySequence(opts, fileNames))
     alignmentsPerQuery = [i[0] for i in dataPerQuery]
     alignmentTextsPerQuery = [i[1] for i in dataPerQuery]
-    fileNumsPerQuery = [i[2] for i in dataPerQuery]
+    fileNumPerQuery = [i[2] for i in dataPerQuery]
     queryNames = [i[3] for i in dataPerQuery]
     alignments = list(chain.from_iterable(alignmentsPerQuery))
 
@@ -738,9 +738,7 @@ def main(opts, args):
     if opts.min_seqs < 1:
         return printAlignments(opts, alnsPerKeptQuery, alignmentTextsPerQuery)
 
-    myAlignmentsInGenomeOrder = alignmentsInGenomeOrder(alnsPerKeptQuery)
-    addOverlaps(myAlignmentsInGenomeOrder)
-
+    addOverlaps(alignmentsInGenomeOrder(alnsPerKeptQuery))
     links = linksBetweenQueries(opts, alignments, alnsPerKeptQuery)
     adjacencyList = adjacencyListFromLinks(len(alignmentsPerQuery), links)
 
@@ -760,7 +758,7 @@ def main(opts, args):
     clumpClumps = clumpsOfClumps(alignments, alignmentsPerQuery, clumps)
     clumps = chain.from_iterable(clumpClumps)
     clumps = namedClumps(queryNames, isEachQueryOneMergedGroup, clumps)
-    goodClumps = list(wantedClumps(colonPos, fileNumsPerQuery, clumps))
+    goodClumps = list(wantedClumps(colonPos, fileNumPerQuery, clumps))
 
     if not opts.shrink:
         for clumpName, clump in goodClumps:
