@@ -623,19 +623,26 @@ def printAlignments(opts, alnsPerKeptQuery, alignmentTextsPerQuery):
                 separator = "" if t[0][0] == "a" else "\t"
                 print(*t, sep=separator)
 
-def alignmentsPerKeptQuery(opts, dataPerQuery, alignments, ngFileNames):
+def alignmentsPerKeptQuery(opts, dataPerQry, alignments, ngFileNames):
+    logging.info("queries: " + str(len(dataPerQry)))
+    numOfNgSeqs = 4096  # start small: try to avoid too many overlaps
     for f in ngFileNames:
         ngPer = [i[0] for i in alignmentsPerRearrangedQuerySequence(opts, [f])]
+        ngAlnsPerQry = iter(ngPer)
         ngAlignments = list(chain.from_iterable(ngPer))
-        okAlns = alignmentsInGenomeOrder(i[0] for i in dataPerQuery)
-        ngAlns = alignmentsInGenomeOrder(ngPer)
-        addNgOverlaps(okAlns, ngAlns)
-        logging.info("excluding...")
-        dataPerQuery = [i for i in dataPerQuery
-                        if isNoSharedRearrangement(opts, alignments,
-                                                   ngAlignments, i[0], i[4])]
-        delOverlaps(okAlns)
-    return [i[0] for i in dataPerQuery]
+        while True:
+            ngAlns = alignmentsInGenomeOrder(islice(ngAlnsPerQry, numOfNgSeqs))
+            if not ngAlns: break
+            okAlns = alignmentsInGenomeOrder(i[0] for i in dataPerQry)
+            addNgOverlaps(okAlns, ngAlns)
+            logging.info("excluding...")
+            dataPerQry = [i for i in dataPerQry
+                          if isNoSharedRearrangement(opts, alignments,
+                                                     ngAlignments, i[0], i[4])]
+            logging.info("queries: " + str(len(dataPerQry)))
+            delOverlaps(okAlns)
+            numOfNgSeqs = min(numOfNgSeqs * 16, sys.maxsize)
+    return [i[0] for i in dataPerQry]
 
 def clumpsOfClumps(alignments, alignmentsPerQuery, clumps):
     links = set(linksBetweenClumps(alignments, alignmentsPerQuery, clumps))
@@ -729,7 +736,6 @@ def main(opts, args):
     alnsPerKeptQuery = alignmentsPerKeptQuery(opts, dataPerQuery,
                                               alignments, args[colonEnd:])
 
-    logging.info("queries: " + str(len(alnsPerKeptQuery)))
     if opts.min_cov:
         alnsPerKeptQuery = alignmentsOfCoveredQueries(opts, alignments,
                                                       alnsPerKeptQuery)
