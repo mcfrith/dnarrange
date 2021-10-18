@@ -623,19 +623,21 @@ def printAlignments(opts, alnsPerKeptQuery, alignmentTextsPerQuery):
                 separator = "" if t[0][0] == "a" else "\t"
                 print(*t, sep=separator)
 
-def alignmentsPerKeptQuery(numOfCaseFiles, dataPerQuery, alignments):
-    okAlns = [i[0] for i in dataPerQuery if i[2] <= numOfCaseFiles]
-    ngAlns = [i[0] for i in dataPerQuery if i[2] > numOfCaseFiles]
+def alignmentsPerKeptQuery(opts, dataPerQuery, alignments, ngFileNames):
+    ngInput = alignmentsPerRearrangedQuerySequence(opts, ngFileNames)
+    okAlns = [i[0] for i in dataPerQuery]
+    ngAlns = [i[0] for i in ngInput]
     if not ngAlns:
         return okAlns
-    okTypes = [i[4] for i in dataPerQuery if i[2] <= numOfCaseFiles]
+    okTypes = [i[4] for i in dataPerQuery]
+    ngAlignments = list(chain.from_iterable(ngAlns))
     okAlignmentsInGenomeOrder = alignmentsInGenomeOrder(okAlns)
     ngAlignmentsInGenomeOrder = alignmentsInGenomeOrder(ngAlns)
     addNgOverlaps(okAlignmentsInGenomeOrder, ngAlignmentsInGenomeOrder)
     logging.info("excluding...")
     z = zip(okAlns, okTypes)
     out = [i for i, j in z if isNoSharedRearrangement(opts, alignments,
-                                                      alignments, i, j)]
+                                                      ngAlignments, i, j)]
     delOverlaps(okAlignmentsInGenomeOrder)
     return out
 
@@ -719,7 +721,7 @@ def main(opts, args):
         args.append(":")
     colonPos = args.index(":")
     colonEnd = colonPos + 1
-    fileNames = args[:colonPos] + args[colonEnd:]
+    fileNames = args[:colonPos]
 
     dataPerQuery = list(alignmentsPerRearrangedQuerySequence(opts, fileNames))
     alignmentsPerQuery = [i[0] for i in dataPerQuery]
@@ -728,8 +730,8 @@ def main(opts, args):
     queryNames = [i[3] for i in dataPerQuery]
     alignments = list(chain.from_iterable(alignmentsPerQuery))
 
-    alnsPerKeptQuery = alignmentsPerKeptQuery(colonPos,
-                                              dataPerQuery, alignments)
+    alnsPerKeptQuery = alignmentsPerKeptQuery(opts, dataPerQuery,
+                                              alignments, args[colonEnd:])
 
     logging.info("queries: " + str(len(alnsPerKeptQuery)))
     if opts.min_cov:
