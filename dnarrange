@@ -624,21 +624,18 @@ def printAlignments(opts, alnsPerKeptQuery, alignmentTextsPerQuery):
                 print(*t, sep=separator)
 
 def alignmentsPerKeptQuery(opts, dataPerQuery, alignments, ngFileNames):
-    ngInput = alignmentsPerRearrangedQuerySequence(opts, ngFileNames)
-    okAlns = [i[0] for i in dataPerQuery]
-    ngAlns = [i[0] for i in ngInput]
-    if not ngAlns:
-        return okAlns
-    ngAlignments = list(chain.from_iterable(ngAlns))
-    okAlignmentsInGenomeOrder = alignmentsInGenomeOrder(okAlns)
-    ngAlignmentsInGenomeOrder = alignmentsInGenomeOrder(ngAlns)
-    addNgOverlaps(okAlignmentsInGenomeOrder, ngAlignmentsInGenomeOrder)
-    logging.info("excluding...")
-    out = [i[0] for i in dataPerQuery
-           if isNoSharedRearrangement(opts, alignments,
-                                      ngAlignments, i[0], i[4])]
-    delOverlaps(okAlignmentsInGenomeOrder)
-    return out
+    for f in ngFileNames:
+        ngPer = [i[0] for i in alignmentsPerRearrangedQuerySequence(opts, [f])]
+        ngAlignments = list(chain.from_iterable(ngPer))
+        okAlns = alignmentsInGenomeOrder(i[0] for i in dataPerQuery)
+        ngAlns = alignmentsInGenomeOrder(ngPer)
+        addNgOverlaps(okAlns, ngAlns)
+        logging.info("excluding...")
+        dataPerQuery = [i for i in dataPerQuery
+                        if isNoSharedRearrangement(opts, alignments,
+                                                   ngAlignments, i[0], i[4])]
+        delOverlaps(okAlns)
+    return [i[0] for i in dataPerQuery]
 
 def clumpsOfClumps(alignments, alignmentsPerQuery, clumps):
     links = set(linksBetweenClumps(alignments, alignmentsPerQuery, clumps))
