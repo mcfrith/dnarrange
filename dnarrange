@@ -627,9 +627,9 @@ def alignmentsPerKeptQuery(opts, dataPerQry, alignments, ngFileNames):
     logging.info("queries: " + str(len(dataPerQry)))
     numOfNgSeqs = 4096  # start small: try to avoid too many overlaps
     for f in ngFileNames:
-        ngPer = [i[0] for i in alignmentsPerRearrangedQuerySequence(opts, [f])]
-        ngAlnsPerQry = iter(ngPer)
-        ngAlignments = list(chain.from_iterable(ngPer))
+        ngIn = [i[0] for i in alignmentsPerRearrangedQuerySequence(opts, [f])]
+        ngAlnsPerQry = iter(ngIn)
+        ngAlignments = list(chain.from_iterable(ngIn))
         while True:
             ngAlns = alignmentsInGenomeOrder(islice(ngAlnsPerQry, numOfNgSeqs))
             if not ngAlns: break
@@ -724,17 +724,16 @@ def main(opts, args):
         args.append(":")
     colonPos = args.index(":")
     colonEnd = colonPos + 1
-    fileNames = args[:colonPos]
 
-    dataPerQuery = list(alignmentsPerRearrangedQuerySequence(opts, fileNames))
-    alignmentsPerQuery = [i[0] for i in dataPerQuery]
-    alignmentTextsPerQuery = [i[1] for i in dataPerQuery]
-    fileNumPerQuery = [i[2] for i in dataPerQuery]
-    queryNames = [i[3] for i in dataPerQuery]
+    okInput = list(alignmentsPerRearrangedQuerySequence(opts, args[:colonPos]))
+    alignmentsPerQuery = [i[0] for i in okInput]
+    alignmentTextsPerQuery = [i[1] for i in okInput]
+    fileNumPerQuery = [i[2] for i in okInput]
+    queryNames = [i[3] for i in okInput]
     alignments = list(chain.from_iterable(alignmentsPerQuery))
 
-    alnsPerKeptQuery = alignmentsPerKeptQuery(opts, dataPerQuery,
-                                              alignments, args[colonEnd:])
+    alnsPerKeptQuery = alignmentsPerKeptQuery(opts, okInput, alignments,
+                                              args[colonEnd:])
 
     if opts.min_cov:
         alnsPerKeptQuery = alignmentsOfCoveredQueries(opts, alignments,

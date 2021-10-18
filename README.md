@@ -25,8 +25,10 @@ It's OK to not use "control" files, or use them in a separate step:
     dnarrange case.maf > groups0.maf
     dnarrange groups0.maf : control1.maf control2.maf > groups.maf
 
-It's OK to use more than one "case" file: `dnarrange` will only output
-groups that include reads from all case files.
+But it may be very slow and memory-consuming, for large case data
+without control data.  It's OK to use more than one "case" file:
+`dnarrange` will only output groups that include reads from all case
+files.
 
 `dnarrange` tries to flip the reads' strands so all the reads in a
 group are on the same strand.  A `-` at the end of a read name
