@@ -629,15 +629,14 @@ def alignmentsPerKeptQuery(opts, dataPerQuery, alignments, ngFileNames):
     ngAlns = [i[0] for i in ngInput]
     if not ngAlns:
         return okAlns
-    okTypes = [i[4] for i in dataPerQuery]
     ngAlignments = list(chain.from_iterable(ngAlns))
     okAlignmentsInGenomeOrder = alignmentsInGenomeOrder(okAlns)
     ngAlignmentsInGenomeOrder = alignmentsInGenomeOrder(ngAlns)
     addNgOverlaps(okAlignmentsInGenomeOrder, ngAlignmentsInGenomeOrder)
     logging.info("excluding...")
-    z = zip(okAlns, okTypes)
-    out = [i for i, j in z if isNoSharedRearrangement(opts, alignments,
-                                                      ngAlignments, i, j)]
+    out = [i[0] for i in dataPerQuery
+           if isNoSharedRearrangement(opts, alignments,
+                                      ngAlignments, i[0], i[4])]
     delOverlaps(okAlignmentsInGenomeOrder)
     return out
 
