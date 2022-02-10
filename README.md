@@ -105,7 +105,7 @@ re-[align](https://github.com/mcfrith/last-rna/blob/master/last-long-reads.md)
 the merged reads to the genome (it's recommended to do this without
 repeat-masking):
 
-    lastdb -P8 -uNEAR -R01 mydb genome.fa
+    lastdb -P8 -uNEAR mydb genome.fa
     last-train -P8 mydb merged.fa > merged.par
     lastal -P8 -p merged.par mydb merged.fa | last-split > merged.maf
 
@@ -261,6 +261,13 @@ genome more slowly-and-carefully (e.g. without repeat-masking).
 you can see them with `dnarrange-merge --help`, and they're described
 at the [lamassemble] site.
 
+## Paper
+
+For more details, please see: [A pipeline for complete
+characterization of complex germline rearrangements from long DNA
+reads][paper] by S Mitsuhashi, S Ohori, et al.
+
 [BED]: https://genome.ucsc.edu/FAQ/FAQformat.html#format1
 [MAFFT]: https://mafft.cbrc.jp/alignment/software/
 [lamassemble]: https://gitlab.com/mcfrith/lamassemble
+[paper]: https://doi.org/10.1186/s13073-020-00762-1
