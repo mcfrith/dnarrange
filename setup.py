@@ -17,8 +17,9 @@ setuptools.setup(
     ],
     scripts=[
         "dnarrange",
-        "dnarrange-merge",
+        "dnarrange-genes",
         "dnarrange-link",
+        "dnarrange-merge",
         "last-multiplot",
     ],
 )
