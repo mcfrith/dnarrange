@@ -58,15 +58,18 @@ def groupsFromLines(lines):
                 break
             elif ":" in fields[1]:
                 rangeLists[-1] += fields[1:]
+                groupLines.append(line)
             elif len(fields) == 2:
                 if groupName:
-                    yield groupName, rangeLists
+                    yield groupName, rangeLists, groupLines
                 groupName = fields[1]
                 rangeLists = [[]]
+                groupLines = [line]
             elif groupName:
                 rangeLists.append(fields[2:])
+                groupLines.append(line)
     if groupName:
-        yield groupName, rangeLists
+        yield groupName, rangeLists, groupLines
 
 def genesAtBreakpoints(breakpoints, genes, maxGeneLength):
     for sequenceName, pos in set(breakpoints):
@@ -82,13 +85,17 @@ def genesAtBreakpoints(breakpoints, genes, maxGeneLength):
 def main(opts, genesFile, groupsFile):
     genes = sorted(genesFromLines(opts, openFile(genesFile)))
     maxGeneLength = max(end - beg for chrom, beg, end, geneName in genes)
-    for groupName, rangeLists in groupsFromLines(openFile(groupsFile)):
+    for groupData in groupsFromLines(openFile(groupsFile)):
+        groupName, rangeLists, groupLines = groupData
         breakpointLists = map(breakpointsFromSeqRanges, rangeLists)
         breakpoints = [j for i in breakpointLists for j in i]
         geneNames = genesAtBreakpoints(breakpoints, genes, maxGeneLength)
         geneNames = sorted(set(geneNames))
         if geneNames:
-            print(groupName, ",".join(geneNames), sep="\t")
+            if opts.output == 0:
+                print(groupName, ",".join(geneNames), sep="\t")
+            else:
+                print(*groupLines, sep="")
 
 if __name__ == "__main__":
     usage = "%prog [options] refGene.txt groups.maf > groups.txt"
@@ -96,6 +103,9 @@ if __name__ == "__main__":
     op = optparse.OptionParser(usage=usage, description=descr)
     op.add_option("-d", "--distance", metavar="D", type="int", default=100,
                   help="maximum distance (default=%default)")
+    op.add_option("-o", "--output", metavar="N", type="int", default=0,
+                  help="0=simple table, 1=parts of input near genes "
+                  "(default=%default)")
     opts, args = op.parse_args()
     if len(args) == 2:
         main(opts, *args)
