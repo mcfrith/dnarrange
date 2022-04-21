@@ -57,20 +57,16 @@ def groupsFromLines(lines):
             if fields[1] == "PART":
                 break
             elif ":" in fields[1]:
-                seqRanges += fields[1:]
+                rangeLists[-1] += fields[1:]
             elif len(fields) == 2:
                 if groupName:
-                    breakpoints.extend(breakpointsFromSeqRanges(seqRanges))
-                    yield groupName, breakpoints
+                    yield groupName, rangeLists
                 groupName = fields[1]
-                breakpoints = []
-                seqRanges = []
+                rangeLists = [[]]
             elif groupName:
-                breakpoints.extend(breakpointsFromSeqRanges(seqRanges))
-                seqRanges = fields[2:]
+                rangeLists.append(fields[2:])
     if groupName:
-        breakpoints.extend(breakpointsFromSeqRanges(seqRanges))
-        yield groupName, breakpoints
+        yield groupName, rangeLists
 
 def genesAtBreakpoints(breakpoints, genes, maxGeneLength):
     for sequenceName, pos in set(breakpoints):
@@ -86,7 +82,9 @@ def genesAtBreakpoints(breakpoints, genes, maxGeneLength):
 def main(opts, genesFile, groupsFile):
     genes = sorted(genesFromLines(opts, openFile(genesFile)))
     maxGeneLength = max(end - beg for chrom, beg, end, geneName in genes)
-    for groupName, breakpoints in groupsFromLines(openFile(groupsFile)):
+    for groupName, rangeLists in groupsFromLines(openFile(groupsFile)):
+        breakpointLists = map(breakpointsFromSeqRanges, rangeLists)
+        breakpoints = [j for i in breakpointLists for j in i]
         geneNames = genesAtBreakpoints(breakpoints, genes, maxGeneLength)
         geneNames = sorted(set(geneNames))
         if geneNames:
