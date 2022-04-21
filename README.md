@@ -207,6 +207,10 @@ from any breakpoint like this:
 
     dnarrange-genes -d5000 refGene.txt groups.maf > groups.txt
 
+You can also get groups near genes, with option `-o1`:
+
+    dnarrange-genes -o1 refGene.txt groups.maf > groups-near-genes.maf
+
 ## `dnarrange` options
 
 - `-h`, `--help`: show a help message, with default option values, and

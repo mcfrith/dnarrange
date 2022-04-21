@@ -55,5 +55,5 @@ PATH=..:$PATH
 
     try dnarrange-genes refFlat.txt alns-c1-top.maf
     try dnarrange-genes -d5000 refFlat.txt alns-c1-top.maf
-} 2>&1 |
-diff -u $(basename $0 .sh).out -
+    try dnarrange-genes -o1 refFlat.txt alns-c1-top.maf
+} 2>&1 | diff -u tests.out -

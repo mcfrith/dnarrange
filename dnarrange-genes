@@ -49,13 +49,17 @@ def breakpointsFromSeqRanges(seqRanges):
         if i + 1 < len(seqRanges):
             yield sequenceName, end
 
-def groupsFromLines(lines):
+def groupsFromLines(lines, wantedGroupNames):
     groupName = None
+    isWanted = False
     for line in lines:
         fields = line.split()
         if len(fields) > 1 and fields[0] == "#":
             if fields[1] == "PART":
-                break
+                if groupName:
+                    yield groupName, rangeLists, groupLines
+                    groupName = None
+                isWanted = fields[2] in wantedGroupNames
             elif ":" in fields[1]:
                 rangeLists[-1] += fields[1:]
                 groupLines.append(line)
@@ -68,6 +72,8 @@ def groupsFromLines(lines):
             elif groupName:
                 rangeLists.append(fields[2:])
                 groupLines.append(line)
+        if isWanted:
+            print(line, end="")
     if groupName:
         yield groupName, rangeLists, groupLines
 
@@ -85,7 +91,8 @@ def genesAtBreakpoints(breakpoints, genes, maxGeneLength):
 def main(opts, genesFile, groupsFile):
     genes = sorted(genesFromLines(opts, openFile(genesFile)))
     maxGeneLength = max(end - beg for chrom, beg, end, geneName in genes)
-    for groupData in groupsFromLines(openFile(groupsFile)):
+    wantedGroupNames = set()
+    for groupData in groupsFromLines(openFile(groupsFile), wantedGroupNames):
         groupName, rangeLists, groupLines = groupData
         breakpointLists = map(breakpointsFromSeqRanges, rangeLists)
         breakpoints = [j for i in breakpointLists for j in i]
@@ -96,6 +103,7 @@ def main(opts, genesFile, groupsFile):
                 print(groupName, ",".join(geneNames), sep="\t")
             else:
                 print(*groupLines, sep="")
+                wantedGroupNames.add(groupName)
 
 if __name__ == "__main__":
     usage = "%prog [options] refGene.txt groups.maf > groups.txt"
