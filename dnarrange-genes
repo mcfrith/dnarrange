@@ -35,16 +35,15 @@ def genesFromLines(opts, lines):
             geneName = fields[12 if len(fields) > 12 else 0]
         yield chrom, beg - extension, end + extension, geneName
 
-def seqRangesFromFields(fields):
-    for i in fields:
-        sequenceName, r = i.split(":")
-        parts = r.split("<" if "<" in r else ">")
-        beg, end = map(int, parts)
-        yield sequenceName, beg, end
+def seqRangeFromText(text):
+    sequenceName, r = text.split(":")
+    parts = r.split("<" if "<" in r else ">")
+    beg, end = map(int, parts)
+    return sequenceName, beg, end
 
 def breakpointsFromSeqRanges(seqRanges):
     for i, x in enumerate(seqRanges):
-        sequenceName, beg, end = x
+        sequenceName, beg, end = seqRangeFromText(x)
         if i > 0:
             yield sequenceName, beg
         if i + 1 < len(seqRanges):
@@ -58,7 +57,7 @@ def groupsFromLines(lines):
             if fields[1] == "PART":
                 break
             elif ":" in fields[1]:
-                seqRanges.extend(seqRangesFromFields(fields[1:]))
+                seqRanges += fields[1:]
             elif len(fields) == 2:
                 if groupName:
                     breakpoints.extend(breakpointsFromSeqRanges(seqRanges))
@@ -68,7 +67,7 @@ def groupsFromLines(lines):
                 seqRanges = []
             elif groupName:
                 breakpoints.extend(breakpointsFromSeqRanges(seqRanges))
-                seqRanges = list(seqRangesFromFields(fields[2:]))
+                seqRanges = fields[2:]
     if groupName:
         breakpoints.extend(breakpointsFromSeqRanges(seqRanges))
         yield groupName, breakpoints
