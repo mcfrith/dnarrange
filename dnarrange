@@ -401,22 +401,27 @@ def sharedRearrangement(opts, types, alignmentsA, alignmentsB,
             alnAY = alignmentsA[alnNumAY]
             if not isNonlinearPair(opts, types, alnAX, alnAY):
                 continue
+            isRevAX = (alnAX[1] < 0)
+            isRevAY = (alnAY[1] < 0)
+            isUpstreamInQueryA = (alnNumAX < alnNumAY)
             for alnNumBY in alnNumsBY:
                 for alnNumBX in alnNumsBX:
                     if alnNumBX == alnNumBY:
                         continue
                     alnBX = alignmentsB[alnNumBX]
                     alnBY = alignmentsB[alnNumBY]
-                    isSameStrand = isSameQueryStrand(alnAY, alnBY)
-                    if isSameQueryStrand(alnAX, alnBX) != isSameStrand:
-                        continue
-                    isUpstreamInQueryA = (alnNumAX < alnNumAY)
-                    isUpstreamInQueryB = (alnNumBX < alnNumBY)
-                    isSameOrder = (isUpstreamInQueryA == isUpstreamInQueryB)
-                    if isSameOrder != isSameStrand:
-                        continue
-                    if isSharedRearrangement(opts, alnAX, alnAY, alnBX, alnBY):
-                        return "-+"[isSameStrand]
+                    if isRevAY is (alnBY[1] < 0):
+                        if (isRevAX is (alnBX[1] < 0) and
+                            isUpstreamInQueryA is (alnNumBX < alnNumBY) and
+                            isSharedRearrangement(opts,
+                                                  alnAX, alnAY, alnBX, alnBY)):
+                            return "+"
+                    else:
+                        if (isRevAX is not (alnBX[1] < 0) and
+                            isUpstreamInQueryA is not (alnNumBX < alnNumBY) and
+                            isSharedRearrangement(opts,
+                                                  alnAX, alnAY, alnBX, alnBY)):
+                            return "-"
     return None
 
 def isNoSharedRearrangement(opts, okAlignments, ngAlignments,
