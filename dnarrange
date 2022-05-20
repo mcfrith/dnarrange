@@ -244,7 +244,8 @@ def newAlnFromOldAln(oldAln, qryNum, alnNum):
     if refBeg < 0:  # use forward strand of reference:
         refBeg, refEnd = -refEnd, -refBeg
         qryBeg, qryEnd = -qryEnd, -qryBeg
-    return qryNum, qryBeg, qryEnd, refName, refBeg, refEnd, alnNum, []
+    isRev = (qryBeg < 0)
+    return qryNum, qryBeg, qryEnd, refName, refBeg, refEnd, alnNum, [], isRev
 
 def alignmentsPerRearrangedQuerySequence(opts, fileNames):
     qryNum = 0
@@ -325,16 +326,13 @@ def overlapsOfOneQuery(alignments, alignmentsOfOneQuery):
             qryNumB = alignments[alnNumB][0]
             yield qryNumB, alnNumA, alnNumB
 
-def isSameQueryStrand(alnA, alnB):
-    return (alnA[1] < 0) == (alnB[1] < 0)
-
 def isAdjacent(alnX, alnY):
     return alnX[6] + 1 == alnY[6] or alnY[6] + 1 == alnX[6]
 
 def isNonlinearPair(opts, types, alnX, alnY):
     if alnX[3] != alnY[3]:
         return "C" in types and isDifferentChromosomes(alnX[3], alnY[3])
-    if not isSameQueryStrand(alnX, alnY):
+    if alnX[8] is not alnY[8]:
         return "S" in types
     if alnX[1] < alnY[1]:
         gap = alnY[4] - alnX[5]
@@ -369,7 +367,7 @@ def isSharedRearrangement(opts, alnAX, alnAY, alnBX, alnBY):
     if abs(qryDistanceB - qryDistanceA + begDiff - endDiff) > opts.max_diff:
         return False
 
-    if alnAX[3] != alnAY[3] or not isSameQueryStrand(alnAX, alnAY):
+    if alnAX[8] is not alnAY[8] or alnAX[3] != alnAY[3]:
         return True
 
     gapA = refAX + refAY
@@ -401,8 +399,8 @@ def sharedRearrangement(opts, types, alignmentsA, alignmentsB,
             alnAY = alignmentsA[alnNumAY]
             if not isNonlinearPair(opts, types, alnAX, alnAY):
                 continue
-            isRevAX = (alnAX[1] < 0)
-            isRevAY = (alnAY[1] < 0)
+            isRevAX = alnAX[8]
+            isRevAY = alnAY[8]
             isUpstreamInQueryA = (alnNumAX < alnNumAY)
             for alnNumBY in alnNumsBY:
                 for alnNumBX in alnNumsBX:
@@ -410,14 +408,14 @@ def sharedRearrangement(opts, types, alignmentsA, alignmentsB,
                         continue
                     alnBX = alignmentsB[alnNumBX]
                     alnBY = alignmentsB[alnNumBY]
-                    if isRevAY is (alnBY[1] < 0):
-                        if (isRevAX is (alnBX[1] < 0) and
+                    if isRevAY is alnBY[8]:
+                        if (isRevAX is alnBX[8] and
                             isUpstreamInQueryA is (alnNumBX < alnNumBY) and
                             isSharedRearrangement(opts,
                                                   alnAX, alnAY, alnBX, alnBY)):
                             return "+"
                     else:
-                        if (isRevAX is not (alnBX[1] < 0) and
+                        if (isRevAX is not alnBX[8] and
                             isUpstreamInQueryA is not (alnNumBX < alnNumBY) and
                             isSharedRearrangement(opts,
                                                   alnAX, alnAY, alnBX, alnBY)):
@@ -462,23 +460,21 @@ def linksBetweenClumps(alignments, alignmentsPerQuery, clumps):
 def addJumpsIfShared(opts, alignments, alnA, alnB):
     if alnA[6] == 0: return
     alnAX = alignments[alnA[6] - 1]
-    if isSameQueryStrand(alnA, alnB):
+    if alnA[8] is alnB[8]:
         if alnB[6] == 0: return
         alnBX = alignments[alnB[6] - 1]
-        if (alnAX[0] == alnA[0] and alnBX[0] == alnB[0]
-            and alnAX[3] == alnBX[3]
+        if (alnAX[8] is alnBX[8] and alnAX[3] == alnBX[3]
             and alnAX[4] < alnBX[5] and alnAX[5] > alnBX[4]
-            and isSameQueryStrand(alnAX, alnBX)
+            and alnAX[0] == alnA[0] and alnBX[0] == alnB[0]
             and isSharedRearrangement(opts, alnAX, alnA, alnBX, alnB)):
             alnA[7].append(alnB[0])
             alnB[7].append(alnA[0])
     else:
         if alnB[6] + 1 == len(alignments): return
         alnBX = alignments[alnB[6] + 1]
-        if (alnAX[0] == alnA[0] and alnBX[0] == alnB[0]
-            and alnAX[3] == alnBX[3]
+        if (alnAX[8] is not alnBX[8] and alnAX[3] == alnBX[3]
             and alnAX[4] < alnBX[5] and alnAX[5] > alnBX[4]
-            and not isSameQueryStrand(alnAX, alnBX)
+            and alnAX[0] == alnA[0] and alnBX[0] == alnB[0]
             and isSharedRearrangement(opts, alnAX, alnA, alnBX, alnB)):
             alnA[7].append(alnB[0])
             alnBX[7].append(alnAX[0])
