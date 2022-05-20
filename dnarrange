@@ -357,8 +357,8 @@ def isSharedRearrangement(opts, alnAX, alnAY, alnBX, alnBY):
     # alnAY of query sequence A overlaps alnBY of query sequence B
     # alnAX is upstream of alnAY in query sequence A
 
-    qryAX, refAX, qryBX, refBX = alignmentEdges(alnAX, alnBX, alnAX[1] >= 0)
-    qryAY, refAY, qryBY, refBY = alignmentEdges(alnAY, alnBY, alnAY[1] < 0)
+    qryAX, refAX, qryBX, refBX = alignmentEdges(alnAX, alnBX, not alnAX[8])
+    qryAY, refAY, qryBY, refBY = alignmentEdges(alnAY, alnBY, alnAY[8])
 
     qryDistanceA = qryAX + qryAY
     qryDistanceB = qryBX + qryBY
@@ -751,7 +751,7 @@ def main(opts, args):
     adjacencyList = adjacencyListFromLinks(len(alignmentsPerQuery), links)
 
     logging.info("grouping...")
-    isRevStrand = [i[0][1] < 0 and i[-1][1] < 0 for i in alignmentsPerQuery]
+    isRevStrand = [i[0][8] and i[-1][8] for i in alignmentsPerQuery]
     qryPriorities = [(-len(i), -alignedQueryLength(j))
                      for i, j in zip(adjacencyList, alignmentsPerQuery)]
     allClumps = connectedComponents(adjacencyList, qryPriorities, isRevStrand)
