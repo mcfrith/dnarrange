@@ -401,22 +401,17 @@ def sharedRearrangement(opts, types, alignmentsA, alignmentsB,
                 continue
             isRevAX = alnAX[8]
             isRevAY = alnAY[8]
-            isUpstreamInQueryA = (alnNumAX < alnNumAY)
             for alnNumBY in alnNumsBY:
+                alnBY = alignmentsB[alnNumBY]
                 for alnNumBX in alnNumsBX:
-                    if alnNumBX == alnNumBY:
-                        continue
                     alnBX = alignmentsB[alnNumBX]
-                    alnBY = alignmentsB[alnNumBY]
                     if isRevAY is alnBY[8]:
-                        if (isRevAX is alnBX[8] and
-                            isUpstreamInQueryA is (alnNumBX < alnNumBY) and
+                        if (alnNumBX < alnNumBY and isRevAX is alnBX[8] and
                             isSharedRearrangement(opts,
                                                   alnAX, alnAY, alnBX, alnBY)):
                             return "+"
                     else:
-                        if (isRevAX is not alnBX[8] and
-                            isUpstreamInQueryA is not (alnNumBX < alnNumBY) and
+                        if (alnNumBX > alnNumBY and isRevAX is not alnBX[8] and
                             isSharedRearrangement(opts,
                                                   alnAX, alnAY, alnBX, alnBY)):
                             return "-"
