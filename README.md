@@ -1,7 +1,13 @@
 # dnarrange
 
 This is a method to find rearrangements in "long" DNA reads relative
-to a genome sequence.
+to a genome sequence.  It can characterize changes such as chromosome
+shattering, gene conversion, and processed pseudogene insertion.  For
+more details, please see: [A pipeline for complete characterization of
+complex germline rearrangements from long DNA reads][paper].
+
+You can install dnarrange (together with all other software that it
+uses) from [Bioconda][] or [Debian Med][].
 
 ### Step 1: Align the reads to the genome
 
@@ -74,8 +80,7 @@ it requires the latter to be
 This in turn requires the [Python Imaging
 Library](https://pillow.readthedocs.io/) to be installed.
 
-* A useful option is `--rmsk1`, to show repeats, which often cause
-  rearrangements.
+* A useful option is `-a`, to display files of genes, repeats, etc.
 
 Tips for viewing the pictures on a Mac: open the folder in Finder, and
 
@@ -90,6 +95,8 @@ sequencing artifacts.  It may be useful to require at least 3 (instead
 of 2) reads per group:
 
     dnarrange -s3 groups.maf > strict.maf
+
+**If the results are clear enough, you can stop here!**
 
 ### Step 4: Merge each group into a consensus sequence
 
@@ -265,13 +272,9 @@ genome more slowly-and-carefully (e.g. without repeat-masking).
 you can see them with `dnarrange-merge --help`, and they're described
 at the [lamassemble] site.
 
-## Paper
-
-For more details, please see: [A pipeline for complete
-characterization of complex germline rearrangements from long DNA
-reads][paper] by S Mitsuhashi, S Ohori, et al.
-
 [BED]: https://genome.ucsc.edu/FAQ/FAQformat.html#format1
+[Bioconda]: https://bioconda.github.io/
+[Debian Med]: https://www.debian.org/devel/debian-med/
 [MAFFT]: https://mafft.cbrc.jp/alignment/software/
 [lamassemble]: https://gitlab.com/mcfrith/lamassemble
 [paper]: https://doi.org/10.1186/s13073-020-00762-1
