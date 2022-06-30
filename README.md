@@ -109,12 +109,12 @@ and [MAFFT][] to be installed).
 
 Then
 re-[align](https://github.com/mcfrith/last-rna/blob/master/last-long-reads.md)
-the merged reads to the genome (it's recommended to do this without
-repeat-masking):
+the merged reads to the genome (maybe using e.g. `-m20` or `-m50` to
+make it more sensitive-but-slow):
 
     lastdb -P8 -uNEAR mydb genome.fa
     last-train -P8 mydb merged.fa > merged.par
-    lastal -P8 -p merged.par mydb merged.fa | last-split > merged.maf
+    lastal -P8 -m20 --split -p merged.par mydb merged.fa > merged.maf
 
 And draw pictures:
 
@@ -266,7 +266,7 @@ You can get the rearranged reads, without merging them, like this:
     dnarrange-merge all-reads.fq groups.maf > some-reads.fq
 
 This may be useful if you wish to re-align the rearranged reads to the
-genome more slowly-and-carefully (e.g. without repeat-masking).
+genome more slowly-and-carefully.
 
 `dnarrange-merge` also has options that it passes to `lamassemble`:
 you can see them with `dnarrange-merge --help`, and they're described
