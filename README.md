@@ -81,6 +81,7 @@ This in turn requires the [Python Imaging
 Library](https://pillow.readthedocs.io/) to be installed.
 
 * A useful option is `-a`, to display files of genes, repeats, etc.
+* It shows at most 10 reads per group: you can change that with option `-m`.
 
 Tips for viewing the pictures on a Mac: open the folder in Finder, and
 

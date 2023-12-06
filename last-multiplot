@@ -30,7 +30,7 @@ for i in "$arg2"/*
 do
     test -e "$i" || continue
 
-    last-dotplot -j2 --sort2=0 --rot1=v --rot2=h --labels1=2 "$@" "$i" "$i".png
+    last-dotplot -m10 -j2 --sort2=0 --rot1=v --rot2=h --labels1=2 "$@" "$i" "$i".png
 
     rm "$i"
 done
