@@ -260,6 +260,9 @@ You can also get groups near genes, with option `-o1`:
 
 - `-v`, `--verbose`: show progress messages.
 
+- `-w W`, `--width=W`: line-wrap width of group summary lines
+  (default=79).  0 means no wrapping.
+
 ## `dnarrange-merge` options
 
 You can get the rearranged reads, without merging them, like this:

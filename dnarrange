@@ -772,7 +772,8 @@ def main(opts, args):
             for newQryName, ranges in s:
                 paddedName = format(newQryName, str(width))
                 para = " ".join([paddedName] + ranges)
-                print(textwrap.fill(para, 79, break_long_words=False,
+                wrapWidth = opts.width if opts.width else len(para) + 2
+                print(textwrap.fill(para, wrapWidth, break_long_words=False,
                                     break_on_hyphens=False,
                                     initial_indent="# ",
                                     subsequent_indent="#  "))
@@ -830,6 +831,8 @@ if __name__ == "__main__":
     op.add_option("--shrink", action="count", help="shrink the output")
     op.add_option("-v", "--verbose", action="count",
                   help="show progress messages")
+    op.add_option("-w", "--width", type="int", default=79, metavar="W", help=
+                  "line-wrap width of group summary lines (default=%default)")
     opts, args = op.parse_args()
     if opts.min_cov is None:
         opts.min_cov = 1 if opts.min_seqs > 1 else 0

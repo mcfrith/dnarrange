@@ -24,6 +24,7 @@ Options:
                         (default=1.0)
   --shrink              shrink the output
   -v, --verbose         show progress messages
+  -w W, --width=W       line-wrap width of group summary lines (default=79)
 
 TEST dnarrange alns.maf
 # dnarrange alns.maf
