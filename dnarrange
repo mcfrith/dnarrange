@@ -221,6 +221,9 @@ def isBigGap(sortedAlignmentsOfOneQuery, opts):
     return False
 
 def rearrangementType(opts, alignmentsOfOneQuery):
+    if opts.insert:
+        seqNames = set(i[3] for i in alignmentsOfOneQuery)
+        return "I" if len(seqNames) > 1 and opts.insert in seqNames else None
     if "C" in opts.types and isInterChromosome(alignmentsOfOneQuery):
         return "C"
     if "S" in opts.types and isInterStrand(alignmentsOfOneQuery):
@@ -331,6 +334,8 @@ def isAdjacent(alnX, alnY):
 
 def isNonlinearPair(opts, types, alnX, alnY):
     if alnX[3] != alnY[3]:
+        if "I" in types and opts.insert in (alnX[3], alnY[3]):
+            return True
         return "C" in types and isDifferentChromosomes(alnX[3], alnY[3])
     if alnX[8] is not alnY[8]:
         return "S" in types
@@ -428,11 +433,12 @@ def isNoSharedRearrangement(opts, okAlignments, ngAlignments,
 
 def linksBetweenQueries(opts, alignments, alignmentsPerQuery):
     logging.info("linking...")
+    types = "I" if opts.insert else opts.types
     for alignmentsOfOneQuery in alignmentsPerQuery:
         qryNumA = alignmentsOfOneQuery[0][0]
         overlaps = sorted(overlapsOfOneQuery(alignments, alignmentsOfOneQuery))
         for qryNumB, g in groupby(overlaps, itemgetter(0)):
-            strand = sharedRearrangement(opts, opts.types,
+            strand = sharedRearrangement(opts, types,
                                          alignments, alignments, g)
             if strand:
                 yield qryNumA, qryNumB, strand == "-"
@@ -515,6 +521,23 @@ def querySortKey(alignmentsOfOneQuery):
 def clumpSortKey(alignmentsPerQuery, clump):
     k = min(querySortKey(alignmentsPerQuery[i]) for i, isFlipped in clump)
     return -len(clump), k
+
+def insertSortKey(opts, alignmentsPerQuery, clump):
+    shift = 50
+    seqName = opts.insert
+    qryNum, isFlipped = clump[0]
+    alns = alignmentsPerQuery[qryNum]
+    for j, y in enumerate(alns):
+        if j:
+            x = alns[j - 1]
+            xSeq, xBeg, xEnd = x[3:6]
+            ySeq, yBeg, yEnd = y[3:6]
+            if xSeq == seqName and ySeq != seqName:
+                pos = yEnd - shift if y[1] < 0 else yBeg + shift
+                return ySeq, pos
+            if xSeq != seqName and ySeq == seqName:
+                pos = xBeg + shift if x[1] < 0 else xEnd - shift
+                return xSeq, pos
 
 def isMergedGroupName(qryName):
     return re.match(r"(group|merged?)\d+-", qryName)
@@ -755,6 +778,8 @@ def main(opts, args):
     clumps = [i for i in clumps if i[0][0] in keptQueryNums]
     isEachQueryOneMergedGroup = all(map(isMergedGroupName, queryNames))
     sortKey = functools.partial(clumpSortKey, alignmentsPerQuery)
+    if opts.insert:
+        sortKey = functools.partial(insertSortKey, opts, alignmentsPerQuery)
     if isEachQueryOneMergedGroup:
         sortKey = functools.partial(groupSortKey, queryNames)
     clumps.sort(key=sortKey)
@@ -828,6 +853,8 @@ if __name__ == "__main__":
     op.add_option("-m", "--max-mismap", type="float", default=1.0,
                   metavar="PROB", help="discard any alignment with "
                   "mismap probability > PROB (default=%default)")
+    op.add_option("--insert", metavar="NAME",
+                  help="find insertions of the sequence with this name")
     op.add_option("--shrink", action="count", help="shrink the output")
     op.add_option("-v", "--verbose", action="count",
                   help="show progress messages")
