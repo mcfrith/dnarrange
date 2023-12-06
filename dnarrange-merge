@@ -72,7 +72,10 @@ def main(opts, args):
         if opts.verbose:
             cmd.append("-" + "v" * opts.verbose)
         cmd.append("-P" + str(opts.P))
-        cmd.append("-W" + str(opts.W))
+        if opts.u:
+            cmd.append("-u" + str(opts.u))
+        else:
+            cmd.append("-W" + str(opts.W))
         cmd.append("-m" + str(opts.m))
         cmd.append("-z" + str(opts.z))
         cmd += [args[1], "-"]
@@ -105,6 +108,8 @@ if __name__ == "__main__":
     og = optparse.OptionGroup(op, "LAST options")
     og.add_option("-P", type="int", default=1,
                   help="number of parallel threads (default=%default)")
+    og.add_option("-u", metavar="RY", type="int", help=
+                  "use ~1 per this many initial matches")
     og.add_option("-W", type="int", default=19, help="use minimum positions "
                   "in length-W windows (default=%default)")
     og.add_option("-m", type="int", default=5, help=
