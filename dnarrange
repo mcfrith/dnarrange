@@ -522,6 +522,20 @@ def clumpSortKey(alignmentsPerQuery, clump):
     k = min(querySortKey(alignmentsPerQuery[i]) for i, isFlipped in clump)
     return -len(clump), k
 
+def isInsertInRevStrand(insertSeqName, alignmentsOfOneQuery):
+    for j, y in enumerate(alignmentsOfOneQuery):
+        if j:
+            x = alignmentsOfOneQuery[j - 1]
+            if x[3] == insertSeqName and y[3] != insertSeqName:
+                return y[8]
+            if x[3] != insertSeqName and y[3] == insertSeqName:
+                return x[8]
+
+def isFlipQryStrand(opts, alignmentsOfOneQuery):
+    if opts.insert:
+        return isInsertInRevStrand(opts.insert, alignmentsOfOneQuery)
+    return alignmentsOfOneQuery[0][8] and alignmentsOfOneQuery[-1][8]
+
 def insertSortKey(opts, alignmentsPerQuery, clump):
     shift = 50
     seqName = opts.insert
@@ -533,10 +547,10 @@ def insertSortKey(opts, alignmentsPerQuery, clump):
             xSeq, xBeg, xEnd = x[3:6]
             ySeq, yBeg, yEnd = y[3:6]
             if xSeq == seqName and ySeq != seqName:
-                pos = yEnd - shift if y[1] < 0 else yBeg + shift
+                pos = yEnd - shift if y[8] else yBeg + shift
                 return ySeq, pos
             if xSeq != seqName and ySeq == seqName:
-                pos = xBeg + shift if x[1] < 0 else xEnd - shift
+                pos = xBeg + shift if x[8] else xEnd - shift
                 return xSeq, pos
 
 def isMergedGroupName(qryName):
@@ -769,7 +783,7 @@ def main(opts, args):
     adjacencyList = adjacencyListFromLinks(len(alignmentsPerQuery), links)
 
     logging.info("grouping...")
-    isRevStrand = [i[0][8] and i[-1][8] for i in alignmentsPerQuery]
+    isRevStrand = [isFlipQryStrand(opts, i) for i in alignmentsPerQuery]
     qryPriorities = [(-len(i), -alignedQueryLength(j))
                      for i, j in zip(adjacencyList, alignmentsPerQuery)]
     allClumps = connectedComponents(adjacencyList, qryPriorities, isRevStrand)
