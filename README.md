@@ -2,9 +2,10 @@
 
 This is a method to find rearrangements in "long" DNA reads relative
 to a genome sequence.  It can characterize changes such as chromosome
-shattering, gene conversion, and processed pseudogene insertion.  For
-more details, please see: [A pipeline for complete characterization of
-complex germline rearrangements from long DNA reads][paper].
+shattering, gene conversion, virus insertion, and processed pseudogene
+insertion.  For more details, please see: [A pipeline for complete
+characterization of complex germline rearrangements from long DNA
+reads][paper].
 
 You can install dnarrange (together with all other software that it
 uses) from [Bioconda][] or [Debian Med][].
@@ -64,6 +65,17 @@ in common with any control read.  The default is to discard case reads
 whose "strongest" rearrangement type is shared with a control read,
 where "strength" is defined by: inter-chromosome > inter-strand >
 non-colinear > big gap.
+
+#### Insertions of foreign DNA
+
+You can find insertions of (e.g.) a virus genome into a host genome.
+First, align the DNA reads to a combined "genome" with host and virus
+chromosomes.  Then do:
+
+    dnarrange --insert=VirusSeqName alignments.maf > groups.maf
+
+This will get DNA reads that align partly to the sequence called
+`VirusSeqName` and partly to other sequences.
 
 ### Step 3: Draw pictures of the groups
 
@@ -254,6 +266,8 @@ You can also get groups near genes, with option `-o1`:
 
 - `-m PROB`, `--max-mismap=PROB`: discard any alignment with mismap
   probability > PROB (default=1).
+
+- `--insert=NAME`: find insertions of the sequence with this name.
 
 - `--shrink`: write the output in a compact format.  This format can
   be read by `dnarrange`.
