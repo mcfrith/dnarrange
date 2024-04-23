@@ -4,6 +4,7 @@
 
 from __future__ import print_function
 
+import collections
 import functools
 import gzip
 import heapq
@@ -458,51 +459,34 @@ def linksBetweenClumps(alignments, alignmentsPerQuery, clumps):
                     if b < len(clumps) and b != a:
                         yield min(a, b), max(a, b), False
 
-def addJumpsIfShared(opts, alignments, alnA, alnB):
-    if alnA[6] == 0: return
-    alnAX = alignments[alnA[6] - 1]
-    if alnA[8] is alnB[8]:
-        if alnB[6] == 0: return
-        alnBX = alignments[alnB[6] - 1]
-        if (alnAX[8] is alnBX[8] and alnAX[3] == alnBX[3]
-            and alnAX[4] < alnBX[5] and alnAX[5] > alnBX[4]
-            and alnAX[0] == alnA[0] and alnBX[0] == alnB[0]
-            and isSharedRearrangement(opts, alnAX, alnA, alnBX, alnB)):
-            alnA[7].append(alnB[0])
-            alnB[7].append(alnA[0])
-    else:
-        if alnB[6] + 1 == len(alignments): return
-        alnBX = alignments[alnB[6] + 1]
-        if (alnAX[8] is not alnBX[8] and alnAX[3] == alnBX[3]
-            and alnAX[4] < alnBX[5] and alnAX[5] > alnBX[4]
-            and alnAX[0] == alnA[0] and alnBX[0] == alnB[0]
-            and isSharedRearrangement(opts, alnAX, alnA, alnBX, alnB)):
-            alnA[7].append(alnB[0])
-            alnBX[7].append(alnAX[0])
-
-def addSharedJumps(opts, alignments, myAlignmentsInGenomeOrder):
+def addSharedJumps(opts, jumpsInGenomeOrder):
     stash = []
-    refName = ""
-    for alnB in myAlignmentsInGenomeOrder:
-        if alnB[3] != refName:
-            n = 0
-            refName = alnB[3]
-        qryNumB = alnB[0]
-        refBegB = alnB[4]
+    n = 0
+    for jumpB in jumpsInGenomeOrder:
+        alnBX, alnBY, overlapsB = jumpB
+        qryNumB = alnBX[0]
+        refBegBX = alnBX[4]
+        refBegBY = alnBY[4]
+        refEndBY = alnBY[5]
+        isRevB = (alnBX[6] > alnBY[6])
+        if isRevB: alnBX, alnBY = alnBY, alnBX
         j = 0
-        for alnA in islice(stash, n):
-            if alnA[5] > refBegB:  # overlap in ref
-                if alnA[0] < qryNumB:
-                    addJumpsIfShared(opts, alignments, alnA, alnB)
-                elif alnA[0] > qryNumB:
-                    addJumpsIfShared(opts, alignments, alnB, alnA)
-                stash[j] = alnA
+        for jumpA in islice(stash, n):
+            alnAX, alnAY, overlapsA = jumpA
+            if alnAX[5] > refBegBX:
+                qryNumA = alnAX[0]
+                if (alnAY[4] < refEndBY and alnAY[5] > refBegBY and
+                    qryNumA != qryNumB):
+                    if isRevB: alnAX, alnAY = alnAY, alnAX
+                    if isSharedRearrangement(opts, alnBX, alnBY, alnAX, alnAY):
+                        overlapsA.append(qryNumB)
+                        overlapsB.append(qryNumA)
+                stash[j] = jumpA
                 j += 1
             else:
-                overlapsA = alnA[7]
                 overlapsA[:] = list(set(overlapsA))  # try to save memory
         if len(stash) == j: stash.append(None)
-        stash[j] = alnB
+        stash[j] = jumpB
         n = j + 1
 
 def isAllJumpsSupported(opts, goodQryNums, alignmentsOfOneQuery):
@@ -569,10 +553,33 @@ def alignmentsInGenomeOrder(alignmentsPerQuery):
     alignments = chain.from_iterable(alignmentsPerQuery)
     return sorted(alignments, key=itemgetter(3, 4))
 
-def alignmentsOfCoveredQueries(opts, alignments, alignmentsPerQuery):
-    myAlignmentsInGenomeOrder = alignmentsInGenomeOrder(alignmentsPerQuery)
+def jumpsPerChromosomeStrands(alignmentsPerQuery):
+    jumpsDict = collections.defaultdict(list)
+    for alignmentsOfOneQuery in alignmentsPerQuery:
+        x = None
+        for y in alignmentsOfOneQuery:
+            yRefName = y[3]
+            yStrand = y[8]
+            if x:
+                emptyListOfOverlaps = y[7]
+                fwdKey = xStrand, xRefName, yStrand, yRefName
+                revKey = not yStrand, yRefName, not xStrand, xRefName
+                if fwdKey <= revKey:
+                    jumpsDict[fwdKey].append((x, y, emptyListOfOverlaps))
+                if revKey <= fwdKey:
+                    jumpsDict[revKey].append((y, x, emptyListOfOverlaps))
+            x, xRefName, xStrand = y, yRefName, yStrand
+    return jumpsDict
+
+def jumpSortKey(jump):
+    return jump[0][4]
+
+def alignmentsOfCoveredQueries(opts, alignmentsPerQuery):
+    jumpsDict = jumpsPerChromosomeStrands(alignmentsPerQuery)
     logging.info("finding shared jumps...")
-    addSharedJumps(opts, alignments, myAlignmentsInGenomeOrder)
+    for jumpsList in jumpsDict.values():
+        jumpsList.sort(key=jumpSortKey)
+        addSharedJumps(opts, jumpsList)
     while True:
         logging.info("excluding...")
         qryNums = set(i[0][0] for i in alignmentsPerQuery)
@@ -581,7 +588,7 @@ def alignmentsOfCoveredQueries(opts, alignments, alignmentsPerQuery):
         if len(alignmentsPerQuery) == len(qryNums):
             break
         logging.info("queries: " + str(len(alignmentsPerQuery)))
-    delOverlaps(myAlignmentsInGenomeOrder)
+    delOverlaps(chain.from_iterable(alignmentsPerQuery))
     return alignmentsPerQuery
 
 def newStrand(strand, isFlipped):
@@ -769,8 +776,7 @@ def main(opts, args):
                                               args[colonEnd:])
 
     if opts.min_cov:
-        alnsPerKeptQuery = alignmentsOfCoveredQueries(opts, alignments,
-                                                      alnsPerKeptQuery)
+        alnsPerKeptQuery = alignmentsOfCoveredQueries(opts, alnsPerKeptQuery)
 
     print("#", os.path.basename(sys.argv[0]), *sys.argv[1:])
     print()
