@@ -481,21 +481,20 @@ def addJumpsIfShared(opts, alignments, alnA, alnB):
             alnBX[7].append(alnAX[0])
 
 def addSharedJumps(opts, alignments, myAlignmentsInGenomeOrder):
-    logging.info("finding shared jumps...")
     stash = []
     refName = ""
     for alnB in myAlignmentsInGenomeOrder:
         if alnB[3] != refName:
             n = 0
             refName = alnB[3]
-        qryNum = alnB[0]
-        refBeg = alnB[4]
+        qryNumB = alnB[0]
+        refBegB = alnB[4]
         j = 0
         for alnA in islice(stash, n):
-            if alnA[5] > refBeg:  # overlap in ref
-                if alnA[0] < qryNum:
+            if alnA[5] > refBegB:  # overlap in ref
+                if alnA[0] < qryNumB:
                     addJumpsIfShared(opts, alignments, alnA, alnB)
-                elif alnA[0] > qryNum:
+                elif alnA[0] > qryNumB:
                     addJumpsIfShared(opts, alignments, alnB, alnA)
                 stash[j] = alnA
                 j += 1
@@ -572,6 +571,7 @@ def alignmentsInGenomeOrder(alignmentsPerQuery):
 
 def alignmentsOfCoveredQueries(opts, alignments, alignmentsPerQuery):
     myAlignmentsInGenomeOrder = alignmentsInGenomeOrder(alignmentsPerQuery)
+    logging.info("finding shared jumps...")
     addSharedJumps(opts, alignments, myAlignmentsInGenomeOrder)
     while True:
         logging.info("excluding...")
