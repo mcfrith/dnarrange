@@ -602,7 +602,7 @@ def qryNameWithStrand(qryName, isFlipped):
     return newQryName, isAddChar
 
 def printMaf(lines, isFlipped):
-    lines = [re.split(r"(\s+)", i, 5) for i in lines]
+    lines = [re.split(r"(\s+)", i, maxsplit=5) for i in lines]
     sLines = [i for i in lines if i[0] == "s"]
     qryLine = sLines[-1]
     qryName = qryLine[2]
