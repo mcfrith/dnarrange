@@ -22,6 +22,7 @@ Options:
   -m PROB, --max-mismap=PROB
                         discard any alignment with mismap probability > PROB
                         (default=1.0)
+  --insert=NAME         find insertions of the sequence with this name
   --shrink              shrink the output
   -v, --verbose         show progress messages
   -w W, --width=W       line-wrap width of group summary lines (default=79)
